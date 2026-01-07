@@ -1,0 +1,82 @@
+import { v } from "convex/values";
+import { mutation, query } from "./_generated/server";
+
+export const getUsage = query({
+  args: { tenantId: v.id("tenants") },
+  handler: async (ctx, args) => {
+    return await ctx.db
+      .query("subscriptionUsage")
+      .filter((q) => q.eq(q.field("tenantId"), args.tenantId))
+      .first();
+  },
+});
+
+export const checkCredits = query({
+  args: { tenantId: v.id("tenants") },
+  handler: async (ctx, args) => {
+    const usage = await ctx.db
+      .query("subscriptionUsage")
+      .filter((q) => q.eq(q.field("tenantId"), args.tenantId))
+      .first();
+
+    if (!usage) {
+      return { hasCredits: true, remaining: 400 };
+    }
+
+    const remaining = usage.creditsLimit - usage.creditsUsed;
+    return { hasCredits: remaining > 0, remaining };
+  },
+});
+
+export const decrementCredits = mutation({
+  args: { tenantId: v.id("tenants"), amount: v.optional(v.number()) },
+  handler: async (ctx, args) => {
+    const usage = await ctx.db
+      .query("subscriptionUsage")
+      .filter((q) => q.eq(q.field("tenantId"), args.tenantId))
+      .first();
+
+    if (!usage) {
+      const now = Date.now();
+      const periodEnd = now + 30 * 24 * 60 * 60 * 1000;
+      return await ctx.db.insert("subscriptionUsage", {
+        tenantId: args.tenantId,
+        creditsLimit: 400,
+        creditsUsed: args.amount ?? 1,
+        periodStart: now,
+        periodEnd,
+        createdAt: now,
+        updatedAt: now,
+      });
+    }
+
+    await ctx.db.patch(usage._id, {
+      creditsUsed: usage.creditsUsed + (args.amount ?? 1),
+      updatedAt: Date.now(),
+    });
+  },
+});
+
+export const initializeUsage = mutation({
+  args: { tenantId: v.id("tenants") },
+  handler: async (ctx, args) => {
+    const existing = await ctx.db
+      .query("subscriptionUsage")
+      .filter((q) => q.eq(q.field("tenantId"), args.tenantId))
+      .first();
+
+    if (existing) return existing._id;
+
+    const now = Date.now();
+    const periodEnd = now + 30 * 24 * 60 * 60 * 1000;
+    return await ctx.db.insert("subscriptionUsage", {
+      tenantId: args.tenantId,
+      creditsLimit: 400,
+      creditsUsed: 0,
+      periodStart: now,
+      periodEnd,
+      createdAt: now,
+      updatedAt: now,
+    });
+  },
+});

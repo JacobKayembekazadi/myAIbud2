@@ -1,0 +1,378 @@
+# Automated Maintenance Setup Guide
+
+Complete guide to set up automated maintenance for My Aibud and Evolution API.
+
+## 📋 What's Included
+
+### Evolution API Scripts (`evolution-api/scripts/`)
+
+1. **`backup.sh`** - Daily database backups
+   - Creates compressed backups
+   - 30-day retention
+   - Automatic cleanup
+
+2. **`update.sh`** - Monthly Evolution API updates
+   - Pulls latest code/images
+   - Creates backup before update
+   - Health check after update
+   - Automatic rollback on failure
+
+3. **`health-check.sh`** - Continuous health monitoring
+   - Checks containers, API, resources
+   - Sends alerts on issues
+   - Runs every 5 minutes
+
+4. **`setup-cron.sh`** - One-time cron setup
+   - Installs all cron jobs automatically
+
+### My Aibud Scripts (`my-aibud/scripts/`)
+
+1. **`health-check.sh`** - Service health checks
+   - Database, Evolution API, Inngest
+   - Vercel deployment health
+
+   
+2. **`backup-db.sh`** - Database backups
+   - Backs up Supabase/PostgreSQL
+   - Compressed with retention
+
+3. **`update-dependencies.sh`** - Safe dependency updates
+   - Security audit
+   - Test before/after
+   - Automatic rollback
+
+---
+
+## 🚀 Quick Setup (VPS)
+
+### Step 1: Upload Scripts to VPS
+
+```bash
+# On your local machine, upload scripts
+scp -r evolution-api/scripts user@your-vps-ip:/path/to/evolution-api/
+scp -r my-aibud/scripts user@your-vps-ip:/path/to/my-aibud/
+```
+
+Or if using git:
+```bash
+# On VPS
+git pull origin main
+```
+### Step 2: Make Scripts Executable
+
+```bash
+# SSH into VPS
+ssh user@your-vps-ip
+
+# Make Evolution API scripts executable
+cd /path/to/evolution-api
+chmod +x scripts/*.sh
+
+# Make My Aibud scripts executable
+cd /path/to/my-aibud
+chmod +x scripts/*.sh
+```
+
+### Step 3: Configure Backup Directory
+
+```bash
+# Create backup directory
+sudo mkdir -p /backups/evolution-api
+sudo chown $USER:$USER /backups/evolution-api
+
+# Edit backup.sh if needed
+nano evolution-api/scripts/backup.sh
+# Update BACKUP_DIR if you want different location
+```
+
+### Step 4: Set Up Cron Jobs
+
+```bash
+# Run the setup script
+cd /path/to/evolution-api
+./scripts/setup-cron.sh
+
+# Verify cron jobs installed
+crontab -l
+```
+
+### Step 5: (Optional) Configure Email Alerts
+
+```bash
+# Install mailutils (Ubuntu/Debian)
+sudo apt install mailutils
+
+# Configure postfix (choose "Internet Site")
+sudo dpkg-reconfigure postfix
+
+# Or use environment variable
+export ALERT_EMAIL="your@email.com"
+# Add to ~/.bashrc to make permanent
+```
+
+### Step 6: Test Scripts
+
+```bash
+# Test health check
+cd /path/to/evolution-api
+./scripts/health-check.sh
+
+# Test backup
+./scripts/backup.sh
+
+# Check logs
+tail -f scripts/*.log
+
+## 📅 Cron Schedule
+
+After running `setup-cron.sh`, you'll have:
+
+| Task | Schedule | Script |
+|------|----------|--------|
+| Health Check | Every 5 minutes | `health-check.sh` |
+| Database Backup | Daily at 2 AM | `backup.sh` |
+| Evolution API Update | Monthly (1st at 3 AM) | `update.sh` |
+
+**To modify schedule:**
+```bash
+crontab -e
+# Edit the times as needed
+```
+
+---
+
+## 📊 Monitoring
+
+### View Logs
+
+```bash
+# Evolution API logs
+tail -f /path/to/evolution-api/scripts/*.log
+
+# My Aibud logs
+tail -f /path/to/my-aibud/scripts/*.log
+
+# Docker logs
+docker-compose logs -f api
+
+### Check Cron Jobs
+
+```bash
+# List cron jobs
+crontab -l
+
+# Check cron service
+sudo systemctl status cron
+
+# View cron execution logs
+grep CRON /var/log/syslog
+```
+
+---
+
+## 🔧 Manual Operations
+
+### Run Backup Manually
+
+```bash
+cd /path/to/evolution-api
+./scripts/backup.sh
+```
+
+### Update Evolution API Manually
+
+```bash
+cd /path/to/evolution-api
+./scripts/update.sh
+# Or force update:
+./scripts/update.sh --force
+
+### Check Health Manually
+
+```bash
+cd /path/to/evolution-api
+./scripts/health-check.sh
+```
+
+---
+
+## 🚨 Troubleshooting
+
+### Scripts Not Running
+
+1. **Check cron service:**
+   ```bash
+   sudo systemctl status cron
+   sudo systemctl start cron  # If stopped
+   ```
+
+2. **Check script permissions:**
+   ```bash
+   ls -l scripts/*.sh
+   # Should show: -rwxr-xr-x
+   ```
+
+3. **Check cron logs:**
+   ```bash
+   grep CRON /var/log/syslog | tail -20
+   ```
+
+4. **Verify paths in crontab:**
+   ```bash
+   crontab -l
+   # Paths should be absolute, not relative
+
+   ### Backup Fails
+
+1. **Check PostgreSQL container:**
+   ```bash
+   docker ps | grep postgres
+   ```
+
+2. **Check disk space:**
+   ```bash
+   df -h
+   ```
+
+3. **Check backup directory permissions:**
+   ```bash
+   ls -ld /backups/evolution-api
+   ```
+
+### Health Check Alerts
+
+1. **Check container status:**
+   ```bash
+   docker-compose ps
+   ```
+
+2. **Check API endpoint:**
+   ```bash
+   curl http://localhost:8081
+   ```
+
+3. **Check resource usage:**
+   ```bash
+   docker stats
+
+   ## 💰 Cost Optimization
+
+### Backup Storage
+
+**Option 1: Local Storage (Free)**
+- Store backups on VPS
+- Limited by disk space
+- Risk if VPS fails
+
+**Option 2: Cloud Storage (Recommended)**
+- S3: $0.023/GB/month
+- Cloudflare R2: $0.015/GB/month
+- Backblaze B2: $0.005/GB/month
+
+**Setup S3 Upload:**
+```bash
+# Install AWS CLI
+sudo apt install awscli
+
+# Configure
+aws configure
+
+# Edit backup.sh, uncomment S3 upload line
+nano evolution-api/scripts/backup.sh
+```
+
+### Retention Policy
+
+Edit `backup.sh` to change retention:
+```bash
+RETENTION_DAYS=30  # Keep 30 days
+RETENTION_DAYS=7   # Keep 7 days (less storage)
+RETENTION_DAYS=90  # Keep 90 days (more storage)
+
+## ✅ Maintenance Checklist
+
+### Daily (Automated)
+- ✅ Health checks (every 5 min)
+- ✅ Database backup (2 AM)
+
+### Weekly (Manual - 10 min)
+- [ ] Review health check logs
+- [ ] Check failed jobs in Inngest
+- [ ] Review Sentry errors
+- [ ] Check resource usage
+
+### Monthly (Automated + Manual - 1 hour)
+- ✅ Evolution API update (automated)
+- [ ] Review costs
+- [ ] Check database size
+- [ ] Security updates
+- [ ] Review client usage
+
+### Quarterly (Manual - 2 hours)
+- [ ] Major dependency updates
+- [ ] Performance review
+- [ ] Security audit
+- [ ] Backup restoration test
+
+---
+
+## 📞 Support
+
+- **Script Issues**: Check logs in `scripts/*.log`
+- **Cron Issues**: Check `/var/log/syslog`
+- **Docker Issues**: Check `docker-compose logs`
+- **Documentation**: See `scripts/README.md` in each directory
+
+## 🎯 Expected Results
+
+With these scripts set up:
+
+- **Automated backups**: Daily, compressed, 30-day retention
+- **Automated updates**: Monthly, with rollback on failure
+- **Health monitoring**: Every 5 minutes, alerts on issues
+- **Manual time**: Reduced from 3-5 hours/month to ~1 hour/month
+
+**Time saved**: 2-4 hours/month  
+**Risk reduction**: Automated backups prevent data loss  
+**Uptime improvement**: Health checks catch issues early
+
+Created scripts
+Evolution API (evolution-api/scripts/)
+backup.sh — Daily database backups
+Compressed backups with 30-day retention
+Automatic cleanup of old backups
+Logging
+update.sh — Monthly Evolution API updates
+Pulls latest code and Docker images
+Creates backup before updating
+Health check after update
+Automatic rollback on failure
+health-check.sh — Continuous monitoring
+Checks containers, API, disk, memory, CPU
+Sends email alerts on issues
+Runs every 5 minutes via cron
+setup-cron.sh — One-time cron setup
+Installs all cron jobs automatically
+My Aibud (my-aibud/scripts/)
+health-check.sh — Service health checks
+Database, Evolution API, Inngest, Vercel
+backup-db.sh — Database backups
+Backs up Supabase/PostgreSQL
+update-dependencies.sh — Safe dependency updates
+Security audit, testing, automatic rollback
+Quick setup (on your VPS)
+# 1. Make scripts executablechmod +x evolution-api/scripts/*.shchmod +x my-aibud/scripts/*.sh# 2. Set up cron jobs (one-time)cd evolution-api./scripts/setup-cron.sh# 3. Test scripts./scripts/health-check.sh./scripts/backup.sh
+Maintenance time reduction
+Before: 3-5 hours/month (manual checks)
+After: ~1 hour/month (mostly automated)
+Time saved: 2-4 hours/month
+What's automated
+Daily backups (2 AM)
+Health monitoring (every 5 minutes)
+Monthly updates (1st of month at 3 AM)
+Email alerts on issues
+Automatic rollback on failures
+Documentation
+MAINTENANCE_SETUP.md — Complete setup guide
+evolution-api/scripts/README.md — Evolution API script docs
+my-aibud/scripts/README.md — My Aibud script docs

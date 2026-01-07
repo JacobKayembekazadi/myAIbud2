@@ -1,0 +1,36 @@
+services:
+  evolution-api:
+    image: atendai/evolution-api:latest
+    container_name: evolution-api
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      # Authentication
+      - AUTHENTICATION_API_KEY=${EVOLUTION_API_KEY:-your-evolution-key-here}
+      
+      # Server config
+      - SERVER_URL=http://localhost:8080
+      
+      # Webhook settings (adjust to your Next.js app URL)
+      - WEBHOOK_GLOBAL_ENABLED=true
+      - WEBHOOK_GLOBAL_URL=http://host.docker.internal:3000/api/webhook/evolution
+      - WEBHOOK_GLOBAL_WEBHOOK_BY_EVENTS=true
+      - WEBHOOK_EVENTS_MESSAGES_UPSERT=true
+      - WEBHOOK_EVENTS_CONNECTION_UPDATE=true
+      - WEBHOOK_EVENTS_QRCODE_UPDATED=true
+      
+      # Database (in-memory by default, can configure MongoDB/PostgreSQL)
+      - DATABASE_ENABLED=false
+      
+      # Logging
+      - LOG_LEVEL=DEBUG
+    volumes:
+      - evolution_instances:/evolution/instances
+      - evolution_store:/evolution/store
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+volumes:
+  evolution_instances:
+  evolution_store:

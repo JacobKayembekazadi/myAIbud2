@@ -1,0 +1,348 @@
+# Client Onboarding Guide - My Aibud SaaS
+
+How to run My Aibud as a SaaS platform for your clients.
+
+## 🏗️ Architecture Overview
+
+**Multi-Tenant SaaS Platform:**
+- Each client = 1 `tenant` record in database
+- Each tenant can have multiple WhatsApp `instances` (phone numbers)
+- Credits are tracked per tenant
+- All data is isolated per tenant
+
+## 🚀 Production Deployment
+
+### Step 1: Deploy to Vercel (Recommended)
+
+```bash
+# 1. Push code to GitHub
+git add .
+git commit -m "Ready for production"
+git push origin main
+
+# 2. Import to Vercel
+# - Go to vercel.com
+# - Import your GitHub repo
+# - Add all environment variables
+# - Deploy!
+```
+
+### Step 2: Set Production Environment Variables
+
+In Vercel Dashboard → Settings → Environment Variables:
+
+**Required:**
+```
+DATABASE_URL=postgresql://... (your Supabase production URL)
+
+NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_live_...
+CLERK_SECRET_KEY=sk_live_...
+EVOLUTION_API_URL=https://your-evolution-api.com
+EVOLUTION_API_KEY=your-production-key
+EVOLUTION_WEBHOOK_SECRET=your-secure-secret
+GOOGLE_GENERATIVE_AI_API_KEY=your-google-key
+```
+
+**Optional:**
+```
+UPSTASH_REDIS_REST_URL=https://...
+UPSTASH_REDIS_REST_TOKEN=...
+INNGEST_EVENT_KEY=... (for production)
+INNGEST_SIGNING_KEY=... (for production)
+SENTRY_DSN=...
+```
+
+### Step 3: Deploy Evolution API
+
+**Option A: Self-Hosted (Docker)**
+```bash
+# Deploy Evolution API on a VPS/server
+docker-compose up -d
+# Configure webhook URL to point to your Vercel app
+```
+
+**Option B: Managed Evolution API**
+- Use a hosted Evolution API service
+- Configure webhook to your Vercel app URL
+## Step 4: Configure Inngest (Production)
+
+1. Go to https://inngest.com
+2. Create production app
+3. Get `INNGEST_EVENT_KEY` and `INNGEST_SIGNING_KEY`
+4. Add to Vercel environment variables
+5. Inngest will auto-discover your functions at: `https://your-app.vercel.app/api/inngest`
+
+---
+
+## 👥 Client Onboarding Flow
+
+### How Clients Sign Up
+
+1. **Client visits your website**
+   - Landing page: `https://your-app.vercel.app`
+   - Clicks "Get Started"
+
+2. **Client signs up via Clerk**
+   - Email/password or social login
+   - Clerk creates user account
+   - Redirects to `/dashboard`
+
+3. **System creates tenant automatically**
+   - When client first accesses dashboard
+   - `getCurrentTenant()` checks if tenant exists
+   - If not, creates tenant record linked to `clerkUserId`
+   - Creates initial `subscriptionUsage` record (400 credits, Starter tier)
+
+4. **Client sees dashboard**
+   - Empty state: "Connect your WhatsApp"
+   - Settings page shows subscription tier
+   - Billing page shows credit usage
+
+   ### Client Workflow
+
+**Step 1: Connect WhatsApp**
+- Client goes to Settings page
+- Clicks "Connect WhatsApp"
+- System creates Evolution API instance
+- Shows QR code
+- Client scans with WhatsApp
+- Instance status changes to "connected"
+
+**Step 2: Configure Webhook (Automatic)**
+- When instance is created, system configures webhook:
+  - URL: `https://your-app.vercel.app/api/webhooks/whatsapp`
+  - Secret: `EVOLUTION_WEBHOOK_SECRET`
+  - Events: `messages.upsert`
+
+**Step 3: Start Using**
+- Client sends polls to leads via dashboard
+- Leads respond via WhatsApp
+- AI agents process responses automatically
+- Credits deducted per message sent
+
+---
+
+## 📋 Client Management
+
+### Viewing All Clients
+
+```sql
+-- Query all tenants
+SELECT * FROM tenants ORDER BY created_at DESC;
+
+-- View client usage
+SELECT 
+  t.email,
+  t.subscription_tier,
+  su.credits_used,
+  su.credits_limit
+FROM tenants t
+JOIN subscription_usage su ON t.id = su.tenant_id;
+```
+
+### Managing Client Subscriptions
+
+**Upgrade/Downgrade:**
+```typescript
+// In your admin panel (to be built)
+await db.update(tenants)
+  .set({ subscriptionTier: "pro" })
+  .where(eq(tenants.id, tenantId));
+
+// Update credits limit
+await db.update(subscriptionUsage)
+  .set({ creditsLimit: 1200 })
+  .where(eq(subscriptionUsage.tenantId, tenantId));
+```
+
+### Client Support
+
+**View client's instances:**
+```sql
+SELECT * FROM instances WHERE tenant_id = ?;
+
+**View client's contacts:**
+```sql
+SELECT * FROM contacts WHERE tenant_id = ?;
+```
+
+**View client's message history:**
+```sql
+SELECT * FROM interactions WHERE tenant_id = ? ORDER BY created_at DESC;
+```
+
+---
+
+## 💰 Pricing & Billing
+
+### Current Tiers (from schema)
+
+| Tier | Credits/Month | Price |
+|------|--------------|-------|
+| Starter | 400 | $29/mo |
+| Pro | 1,200 | $79/mo |
+| Business | 4,000 | $199/mo |
+| Enterprise | Unlimited | Custom |
+
+### Credit System
+
+- **1 credit = 1 outbound message** (text, poll, or AI response)
+- **Inbound messages = FREE** (no credit deduction)
+- **AI analysis included** in message credit cost
+- Credits reset monthly (based on `cycleStart`/`cycleEnd`)
+
+### Billing Integration (TODO)
+
+Currently, billing is manual. To add Stripe:
+
+1. Install Stripe SDK
+2. Create subscription products
+3. Add webhook handler for payment events
+4. Update `subscriptionTier` and `billingStatus` on payment
+
+---
+
+## 🔧 Admin Features (To Build)
+
+### Admin Dashboard
+
+**Features needed:**
+1. View all tenants
+2. Manage subscriptions
+3. View usage analytics
+4. Support tools (view client data)
+5. System health monitoring
+
+**Suggested route:** `/admin/*` (protected by admin role)
+
+### Client Support Tools
+
+**Useful queries:**
+```sql
+-- Find clients with low credits
+SELECT t.email, su.credits_used, su.credits_limit
+FROM tenants t
+JOIN subscription_usage su ON t.id = su.tenant_id
+WHERE su.credits_used >= su.credits_limit * 0.9;
+
+ Find clients with failed jobs
+SELECT DISTINCT t.email, fj.job_name, fj.error
+FROM tenants t
+JOIN failed_jobs fj ON t.id = fj.tenant_id
+ORDER BY fj.created_at DESC;
+```
+
+---
+
+## 📊 Monitoring & Analytics
+
+### Key Metrics to Track
+
+1. **Client Metrics:**
+   - Active tenants
+   - New signups per day/week/month
+   - Subscription tier distribution
+   - Credit usage patterns
+
+2. **Usage Metrics:**
+   - Messages sent per tenant
+   - Poll responses received
+   - AI analyses performed
+   - Average response time
+
+3. **System Health:**
+   - Evolution API uptime
+   - Webhook delivery success rate
+   - Failed jobs count
+   - Database performance
+
+   ### Recommended Tools
+
+- **Vercel Analytics** - Track page views, user behavior
+- **Sentry** - Error tracking (already configured)
+- **Inngest Dashboard** - Function execution monitoring
+- **Supabase Dashboard** - Database monitoring
+
+---
+
+## 🚨 Important Considerations
+
+### 1. Evolution API Scaling
+
+**For multiple clients:**
+- Each client needs their own Evolution API instance
+- Consider Evolution API hosting limits
+- May need multiple Evolution API servers for scale
+
+### 2. Database Scaling
+
+- Supabase free tier: 500MB database
+- Monitor database size
+- Consider upgrading plan as you scale
+
+### 3. Rate Limiting
+
+- Upstash Redis handles rate limiting
+- Configure limits per subscription tier
+- Monitor for abuse
+
+## 4. WhatsApp Business API Limits
+
+- WhatsApp has messaging limits
+- First message requires opt-in
+- 24-hour messaging window after user messages you
+- Consider WhatsApp Business API for higher limits
+
+---
+
+## 📝 Client Documentation
+
+### What Clients Need to Know
+
+1. **How to sign up** - Simple email/password
+2. **How to connect WhatsApp** - Scan QR code
+3. **How to send polls** - Via dashboard (to be built)
+4. **Credit system** - How credits work, when they reset
+5. **Pricing** - What they get with each tier
+
+### Client Support Resources
+
+- FAQ page
+- Video tutorials
+- Email support
+- In-app help tooltips
+
+## 🎯 Next Steps for Production
+
+1. ✅ **Deploy to Vercel**
+2. ✅ **Set production environment variables**
+3. ✅ **Deploy Evolution API**
+4. 🔲 **Build client WhatsApp connection UI**
+5. 🔲 **Build poll sending interface**
+6. 🔲 **Add Stripe billing integration**
+7. 🔲 **Build admin dashboard**
+8. 🔲 **Add analytics dashboard**
+9. 🔲 **Set up monitoring alerts**
+10. 🔲 **Create client documentation**
+
+---
+
+## 🔐 Security Checklist
+
+- [ ] Use production Clerk keys (not test keys)
+- [ ] Use strong `EVOLUTION_WEBHOOK_SECRET`
+- [ ] Enable Supabase RLS (Row Level Security) if needed
+- [ ] Set up CORS properly
+- [ ] Use HTTPS everywhere
+- [ ] Rotate API keys regularly
+- [ ] Monitor for suspicious activity
+- [ ] Set up backup strategy
+
+---
+
+## 📞 Support
+
+For questions about running My Aibud as a SaaS:
+- Check architecture docs: `docs/ARCHITECTURE.md`
+- Review API docs: `docs/API.md`
+- Check webhook setup: `docs/WEBHOOKS.md`

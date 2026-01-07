@@ -1,0 +1,173 @@
+Monthly maintenance checklist
+Weekly tasks (15-30 minutes/week)
+1. Monitor system health
+Check Inngest dashboard for failed jobs
+Review Sentry for errors
+Check Evolution API logs for issues
+Verify WhatsApp connections are active
+2. Check resource usage
+VPS CPU/RAM usage (should be <80%)
+Database size (Supabase free tier: 500MB limit)
+Bandwidth usage
+Google AI API quota usage
+3. Review failed jobs
+Check failed_jobs table in database
+Retry or investigate failures
+Fix any recurring issues
+Monthly tasks (1-2 hours/month)
+1. Evolution API updates
+# SSH into VPSssh user@your-vps-ip# Update Evolution APIcd evolution-apigit pulldocker-compose pulldocker-compose up -d# Verify it's runningdocker-compose psdocker-compose logs api --tail 20
+Time: 10-15 minutes
+Frequency: Monthly (or when security updates are released)
+2. Database maintenance
+Backups:
+Supabase: Automatic daily backups (free tier)
+Evolution API: Manual backup of PostgreSQL data
+# Backup Evolution API databasedocker exec evolution_postgres pg_dump -U evolution_user evolution_api > backup-$(date +%Y%m%d).sql# Store backup off-server (S3, Dropbox, etc.)
+Database optimization:
+Check for slow queries
+Review table sizes
+Clean up old data if needed (optional)
+Time: 15-20 minutes
+Frequency: Monthly
+3. Security updates
+VPS system updates:
+ssh user@your-vps-ipapt update && apt upgrade -y# Restart if kernel updatedreboot
+Docker updates:
+docker-compose pulldocker-compose up -d
+Dependency updates (My Aibud):
+cd my-aibudnpm auditnpm update  # Review changelogs firstnpm run build  # Test before deploying
+Time: 20-30 minutes
+Frequency: Monthly (or when security alerts)
+4. Cost review
+Check monthly bills:
+VPS hosting (Hetzner: €6-12/month)
+Supabase (free tier or paid)
+Google AI API usage
+Vercel (free tier usually sufficient)
+Domain renewal (annual)
+Optimize if needed:
+Review unused resources
+Check for unexpected charges
+Consider scaling up/down
+Time: 10 minutes
+Frequency: Monthly
+5. Monitoring setup review
+Verify alerts are working:
+Sentry error alerts
+Uptime monitoring (UptimeRobot, Better Uptime)
+Inngest function failures
+Database connection issues
+Time: 10 minutes
+Frequency: Monthly
+6. Client support review
+Check for issues:
+Review support tickets/emails
+Check client usage patterns
+Identify common problems
+Update documentation if needed
+Time: 30-60 minutes
+Frequency: Monthly (or as needed)
+Quarterly tasks (2-3 hours/quarter)
+1. Major updates
+Evolution API major version updates
+Next.js framework updates
+Database migrations (if schema changes)
+Review and update dependencies
+Time: 1-2 hours
+Frequency: Quarterly
+2. Performance review
+Analyze response times
+Review database query performance
+Check for bottlenecks
+Optimize slow queries
+Time: 1 hour
+Frequency: Quarterly
+3. Security audit
+Review access logs
+Check for suspicious activity
+Rotate API keys (if needed)
+Review firewall rules
+Update SSL certificates (auto-renewed, but verify)
+Time: 30-60 minutes
+Frequency: Quarterly
+Automated tasks (no manual work)
+Already automated:
+SSL certificate renewal (Let's Encrypt auto-renews)
+Database backups (Supabase automatic)
+Error tracking (Sentry sends alerts)
+Uptime monitoring (external service)
+Inngest retries (automatic)
+Vercel deployments (auto-deploys on git push)
+Time estimate summary
+Task	Frequency	Time/Month
+Weekly monitoring	4x/month	1-2 hours
+Evolution API updates	Monthly	15 min
+Database maintenance	Monthly	20 min
+Security updates	Monthly	30 min
+Cost review	Monthly	10 min
+Monitoring review	Monthly	10 min
+Client support	Monthly	30-60 min
+Quarterly tasks	1x/3 months	2-3 hours
+Total monthly time: ~3-5 hours/month
+Minimal maintenance setup
+If you automate monitoring:
+Daily (automated):
+Sentry sends error alerts
+Uptime monitoring alerts on downtime
+Inngest dashboard shows failures
+Weekly (5 minutes):
+Quick check of Sentry dashboard
+Review Inngest failed jobs
+Check VPS resource usage
+Monthly (1 hour):
+Update Evolution API
+Review costs
+Check database size
+Security updates
+Total: ~1-2 hours/month with automation
+Tools to reduce maintenance
+1. Monitoring services (free/cheap):
+UptimeRobot (free: 50 monitors)
+Better Uptime (free tier)
+Sentry (free tier: 5k events/month)
+2. Automated backups:
+Supabase: Automatic
+Evolution API: Cron job for daily backups
+Store in S3/Cloudflare R2 ($0.015/GB)
+3. Auto-scaling:
+VPS auto-scaling scripts (when CPU >80%)
+Database auto-scaling (Supabase handles this)
+4. CI/CD:
+GitHub Actions (already set up)
+Auto-deploy on git push
+Run tests before deploy
+What breaks if you skip maintenance
+Low risk (can wait):
+Minor Evolution API updates (security patches are important)
+Dependency updates (unless security-related)
+Performance optimization
+High risk (do not skip):
+Security updates (VPS, Docker, system)
+Database backups (data loss risk)
+Monitoring alerts (miss critical issues)
+SSL certificate renewal (auto, but verify)
+Recommended maintenance schedule
+Week 1: System updates + security patches
+Week 2: Database review + backups
+Week 3: Cost review + optimization
+Week 4: Performance review + client support
+Daily: Check alerts (5 minutes)
+Weekly: Quick health check (10 minutes)
+Monthly: Full maintenance (1-2 hours)
+Bottom line
+With proper setup:
+Monthly time: 1-2 hours
+Most tasks are automated
+Focus on monitoring and updates
+Minimal manual intervention
+Without automation:
+Monthly time: 3-5 hours
+More manual checks needed
+Higher risk of missing issues
+Recommendation: Set up monitoring alerts (Sentry, UptimeRobot) to reduce manual checks to ~1 hour/month.
