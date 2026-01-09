@@ -8,7 +8,7 @@ __pycache__/
 build/
 develop-eggs/
 dist/
-downloads/
+# downloads/
 eggs/
 .eggs/
 lib/
@@ -61,8 +61,8 @@ Thumbs.db
 .next/
 out/
 
-# Downloads folder (contains other projects)
-Downloads/
+# Downloads folder - removed to allow whatsapp-assistant project
+# Downloads/
 
 # Evolution API
 evolution-api/node_modules/
