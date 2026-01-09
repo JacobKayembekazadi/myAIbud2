@@ -1,141 +1,70 @@
-How clients will use My Aibud:
-Client journey
-1. Client signs up:
-Visits your website (e.g., myaibud.com)
-Clicks "Get Started"
-Signs up with email/password (Clerk handles this)
-System creates a tenant account with Starter plan (400 credits)
-2. Client connects WhatsApp:
-Goes to Settings page
-Clicks "Connect WhatsApp"
-Scans QR code with their phone
-WhatsApp connected
-3. Client uses the system:
-Sends polls to leads via dashboard
-Leads respond via WhatsApp
-AI processes responses automatically
-Credits deducted per message sent
-4. Client manages account:
-Views contacts and messages
-Checks credit usage
-Upgrades subscription if needed
-Multi-tenant architecture
-One deployment serves all clients
-Each client = 1 tenant in the database
-Each tenant can have multiple WhatsApp numbers (instances)
-Data is isolated per tenant
-Credits tracked per tenant
-For you (platform owner)
-Deploy once:
-Deploy to Vercel (or any Node.js host)
-Set production environment variables
-Deploy Evolution API (or use managed service)
-All clients use the same app
-Monitor clients:
-Query database to see all tenants
-View usage per client
-Manage subscriptions
-Support tools (view client data)
-Scaling:
-Add clients without code changes
-Each client gets their own WhatsApp instance
-Credits automatically tracked
-Billing can be integrated with Stripe
-What's needed for production
-Already done:
-Multi-tenant database schema
-Authentication (Clerk)
-Credit system
-AI agents
-Webhook handling
-To build:
-Client WhatsApp connection UI (Settings page)
-Poll sending interface (Dashboard)
-Stripe billing integration
-Admin dashboard (optional)
+# Operating My Aibud - Platform Owner Guide (January 2026)
 
-Cloud hosting options and cost analysis
-Cost breakdown (500 messages/day per user)
-Best option: Hetzner VPS (recommended)
-Specs: 4 vCPU, 8GB RAM, 160GB SSD
-Price: €6-12/month (~$7-13/month)
-Capacity: Handles 5-10 users easily
-Cost per user: $0.70-1.30/month at scale
-Alternative options:
-Option	Price/Month	Cost/User	Notes
-Hetzner VPS	$7-13	$0.70-1.30	Best value, EU servers
-DigitalOcean	$24	$2.40	Easier setup, global
-Contabo	$10-17	$1.00-1.70	Great specs, EU
-Managed Service	$10-50/user	$10-50	Zero maintenance
-Railway/Render	$5-25	$0.50-2.50	Container platforms
-Total cost projection
-For 10 users (500 messages/day each):
-Component	Cost/Month
-Evolution API VPS (Hetzner)	$7-13
-My Aibud (Vercel)	$0 (free tier)
-Database (Supabase)	$0-5
-Google AI (Gemini)	$5-20
-Inngest	$0 (free tier)
-Upstash Redis	$1
-Total	$14-40/month
-Per User	$1.40-4/user
-For 50 users:
-Total: $48-176/month
-Per User: $0.96-3.52/user
-For 200 users:
-Total: $190-520/month
-Per User: $0.95-2.60/user
-Recommended setup: Hetzner VPS
-Why Hetzner:
-Best price/performance ratio
-Reliable infrastructure
-Easy to scale
-Good for EU/US users
-Quick deployment steps:
-Create VPS (5 minutes)
-Go to https://hetzner.com
-Create Cloud Server: CPX21 (4 vCPU, 8GB RAM)
-Choose Ubuntu 22.04
-Cost: €6-12/month
-Install Docker (5 minutes)
-   curl -fsSL https://get.docker.com -o get-docker.sh   sh get-docker.sh   apt install docker-compose git -y
-Deploy Evolution API (10 minutes)
-   git clone https://github.com/EvolutionAPI/evolution-api.git   cd evolution-api   cp env.example .env   # Configure .env with production settings   docker-compose up -d
-Configure Domain + SSL (15 minutes)
-Point domain to VPS IP
-Install Nginx + Let's Encrypt
-Configure reverse proxy
-Update My Aibud (5 minutes)
-Change EVOLUTION_API_URL to your cloud domain
-Update webhook URL in Evolution API
-Total setup time: ~40 minutes
-Monthly cost: $7-13 for 5-10 users
-Scaling strategy
-Phase 1: 1-10 users
-1 VPS (Hetzner CPX21)
-Cost: $7-13/month total
-Phase 2: 11-50 users
-2 VPS + Load Balancer (Nginx)
-Cost: $14-26/month total
-Distribute users across servers
-Phase 3: 50+ users
-Auto-scaling VPS cluster
-Cost: $0.70-1.30/user/month
-Add VPS when >80% capacity
-Cost optimization tips
-Instance sharing: 1 VPS can handle 10-20 WhatsApp instances
-Resource limits: Set Docker limits to prevent overuse
-Shared database: Use Supabase free tier initially
-CDN for media: Use Cloudflare R2 ($0.015/GB)
-Monitor usage: Track CPU/RAM, scale when needed
-Stop local Docker
-To stop Evolution API locally:
-cd evolution-apidocker-compose down
-This stops all containers and frees up resources on your laptop.
-Next steps
-Create Hetzner account → https://hetzner.com
-Deploy VPS → Choose CPX21, Ubuntu 22.04
-Deploy Evolution API → Follow steps above
-Configure domain → Point to VPS, add SSL
-Update My Aibud → Change EVOLUTION_API_URL to cloud
-Expected cost: $0.70-1.30 per user/month at scale
+## 🚀 Business Model & Client Journey
+
+1. **Sign Up:** Users register via Clerk (`/sign-up`). Each user is a unique "Tenant".
+2. **Connect WhatsApp:** Tenants create instances via the Dashboard or `/instances` and scan QR codes.
+3. **AI Automation:** Once connected, the AI handles incoming messages based on Settings.
+4. **Campaigns:** Tenants upload Excel/CSV files to send bulk messages.
+5. **Credits:** Each tenant has a credit limit (default 400). Credits are deducted for AI processing and outgoing messages.
+
+---
+
+## 🏗️ Technical Infrastructure (WAHA Plus + Convex)
+
+### Current Stack
+- **Frontend:** Next.js 16 (on Vercel)
+- **Database:** Convex (Serverless, Real-time)
+- **WhatsApp API:** WAHA Plus (on Hetzner VPS: 49.13.153.22)
+- **AI:** Google Gemini 1.5 (Pro/Flash)
+- **Background Jobs:** Inngest (Campaigns & AI response queue)
+
+### Server Management (Hetzner)
+- Manage via **Coolify** at your VPS IP.
+- WAHA Plus runs as a Docker container.
+- **Port:** 3000
+- **Key:** `myaibud-waha-key-2025`
+
+---
+
+## 🛠️ Production Setup (The "Both" Checklist)
+
+### 1. Vercel Environment Variables
+Add these to **Vercel Project Settings > Environment Variables**:
+
+| Category | Key | Value |
+|----------|-----|-------|
+| **WhatsApp** | `WAHA_API_URL` | `http://49.13.153.22:3000` |
+| | `WAHA_API_KEY` | `myaibud-waha-key-2025` |
+| | `WAHA_WEBHOOK_SECRET` | `my-aibud-waha-webhook-secret` |
+| | `WHATSAPP_PROVIDER` | `waha` |
+| **AI** | `GOOGLE_GENERATIVE_AI_API_KEY` | `AIzaSy...` (Your Gemini Key) |
+| **Convex** | `NEXT_PUBLIC_CONVEX_URL` | `https://optimistic-ermine-644.convex.cloud` |
+| | `CONVEX_DEPLOYMENT` | `dev:optimistic-ermine-644` |
+| **Clerk** | `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` | `pk_test_...` |
+| | `CLERK_SECRET_KEY` | `sk_test_...` |
+| **Inngest** | `INNGEST_EVENT_KEY` | `7E5s...` |
+| | `INNGEST_SIGNING_KEY` | `signkey-...` |
+
+### 2. Webhook Configuration (WAHA Plus)
+Configure the global webhook in your WAHA instance:
+- **Webhook URL:** `https://your-app.vercel.app/api/webhooks/whatsapp`
+- **Events:** `message`, `session.status`, `message.any`
+- **Secret:** `my-aibud-waha-webhook-secret`
+
+---
+
+## 📈 Capacity & Scaling
+
+- **Current VPS (Hetzner):** Can handle ~10-20 concurrent WhatsApp instances.
+- **Scaling Up:** Add more Hetzner nodes and use a load balancer if reaching >50 clients.
+- **Database:** Convex auto-scales; you only pay for usage beyond free tier.
+- **AI Cost:** Gemini Flash is extremely cheap (~$0.10 per 1M tokens).
+
+---
+
+## 🔧 Maintenance
+
+1. **Redeploying:** Any change pushed to GitHub scales to Vercel automatically.
+2. **Convex Changes:** Run `npx convex deploy` if you modify schema or backend functions.
+3. **Logs:** Check Vercel Logs for API errors and Inngest for job failures.

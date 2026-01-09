@@ -17,64 +17,7 @@ My Aibud is a SaaS platform that helps real estate agents automate WhatsApp conv
 - 🤖 **Auto-responds to leads** using AI (Gemini)
 - 📊 **Qualifies leads** through polls and conversations
 - 📸 **Analyzes property photos** with Vision AI
-- 📢 **Sends bulk campaigns** to contact lists
-
----
-
-## 🚀 Quick Start
-
-### Prerequisites
-
-- Node.js 18+
-- npm or pnpm
-- Convex account
-- Clerk account
-- WAHA Plus subscription (for WhatsApp)
-
-### Installation
-
-```bash
-# Clone the repository
-git clone https://github.com/your-org/my-aibud.git
-cd my-aibud
-
-# Install dependencies
-npm install
-
-# Set up environment variables
-cp .env.example .env.local
-# Edit .env.local with your credentials
-
-# Start development server
-npm run dev
-```
-
-### Environment Variables
-
-Create `.env.local` with:
-
-```bash
-# WhatsApp Provider
-WHATSAPP_PROVIDER=waha
-WAHA_API_URL=http://your-waha-server:3000
-WAHA_API_KEY=your-api-key
-WAHA_WEBHOOK_SECRET=your-webhook-secret
-
-# Database (Convex)
-NEXT_PUBLIC_CONVEX_URL=https://your-deployment.convex.cloud
-CONVEX_DEPLOYMENT=prod:your-deployment
-
-# Authentication (Clerk)
-NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_...
-CLERK_SECRET_KEY=sk_test_...
-
-# AI (Google Gemini)
-GOOGLE_GENERATIVE_AI_API_KEY=your-api-key
-
-# Background Jobs (Inngest)
-INNGEST_EVENT_KEY=your-event-key
-INNGEST_SIGNING_KEY=your-signing-key
-```
+- 📢 **Sends bulk campaigns** to contact lists using XLSX/CSV
 
 ---
 
@@ -86,71 +29,37 @@ INNGEST_SIGNING_KEY=your-signing-key
 | **Database** | Convex |
 | **Auth** | Clerk |
 | **WhatsApp API** | WAHA Plus |
-| **AI** | Google Gemini |
+| **AI** | Google Gemini (Flash & Pro) |
 | **Queue** | Inngest |
-| **UI** | Shadcn/ui + Tailwind |
+| **UI** | Shadcn/ui + Tailwind + Lucide Icons |
 | **Hosting** | Vercel + Hetzner |
 
 ---
 
-## 📁 Project Structure
+## ✅ Features (January 2026 Update)
 
-```
-src/
-├── app/                    # Next.js App Router
-│   ├── api/               # API routes (webhooks, inngest)
-│   ├── campaigns/         # Campaign management
-│   ├── chat/              # Chat interface
-│   ├── instances/         # WhatsApp instances
-│   └── page.tsx           # Dashboard
-├── components/            # UI components
-├── inngest/               # Background job definitions
-└── lib/
-    └── whatsapp/          # WhatsApp provider abstraction
-        └── providers/
-            ├── waha.ts    # WAHA Plus (active)
-            ├── evolution.ts
-            └── cloud.ts
-
-convex/                    # Convex database
-├── schema.ts              # Database schema
-├── tenants.ts             # Tenant operations
-├── instances.ts           # Instance management
-├── contacts.ts            # Contact operations
-└── interactions.ts        # Message history
-
-@docs/                     # Documentation
-├── context.md             # Context engineering
-├── Architecture.md        # System architecture
-├── updates.md             # Changelog
-└── ...
-```
+- [x] **Premium UI/UX:** High-end dark theme dashboard with analytics and glassmorphism.
+- [x] **Collapsible Sidebar:** Optimized real estate for managing multiple tools.
+- [x] **Premium Auth:** ProPilot-style split-screen authentication with brand storytelling.
+- [x] **WAHA Plus Integration:** Multi-instance WhatsApp management on Hetzner VPS.
+- [x] **Excel Support:** Bulk campaign messaging with .xlsx and .xls file support.
+- [x] **AI Configuration:** Granular control over AI model, temperature, and auto-reply settings.
+- [x] **Quick Replies:** Template system for managing repetitive responses.
 
 ---
 
-## 🔧 Development
+## 🚀 Deployment
 
-### Local Development
+The system is currently deployed to production. Follow the [deployment-guide.md](@docs/deployment-guide.md) for environment configuration and webhook setup.
 
-```bash
-# Start Next.js dev server
-npm run dev
+### Vercel
+- GitHub linked deployment
+- Automatic builds on push to `master`
 
-# In another terminal, deploy Convex (if schema changed)
-npx convex deploy
-```
-
-### Deploying
-
-```bash
-# Push to GitHub (triggers Vercel)
-git add .
-git commit -m "Your changes"
-git push
-
-# Deploy Convex functions
-npx convex deploy
-```
+### WhatsApp API (Hetzner)
+- **IP:** 49.13.153.22
+- **Port:** 3000
+- Managed via Coolify
 
 ---
 
@@ -158,68 +67,25 @@ npx convex deploy
 
 Detailed documentation is available in the `@docs/` folder:
 
-- **[context.md](@docs/context.md)** - Context engineering for LLMs
-- **[Architecture.md](@docs/Architecture.md)** - System architecture
-- **[updates.md](@docs/updates.md)** - Changelog and updates
-- **[Quick-Start-Guide.md](@docs/Quick-Start-Guide.md)** - Developer onboarding
-- **[security.md](@docs/security.md)** - Security guidelines
-
----
-
-## 🌐 Infrastructure
-
-### WAHA Plus Server
-
-The WhatsApp API runs on a separate server:
-
-- **Host:** Hetzner VPS
-- **Management:** Coolify
-- **Cost:** ~$12/month + $19/month WAHA Plus
-
-See [Architecture.md](@docs/Architecture.md) for setup details.
-
----
-
-## ✅ Current Features
-
-- [x] Multi-tenant authentication (Clerk)
-- [x] WhatsApp instance management (CRUD)
-- [x] QR code linking
-- [x] Status synchronization
-- [x] Contact import from WhatsApp
-- [x] Chat/contact list UI
-
-## 🚧 Roadmap
-
-- [ ] Real-time incoming messages
-- [ ] AI auto-responses
-- [ ] Campaign/bulk messaging
-- [ ] Credit/subscription system
-- [ ] Poll-based lead qualification
-- [ ] Property photo analysis (Vision AI)
+- **[context.md](@docs/context.md)** - Project overview and status
+- **[Architecture.md](@docs/Architecture.md)** - Full technical deep dive
+- **[updates.md](@docs/updates.md)** - Detailed version history
+- **[deployment-guide.md](@docs/deployment-guide.md)** - Production setup instructions
 
 ---
 
 ## 🔐 Security
 
 - All routes protected by Clerk authentication
-- Tenant data isolation
-- Webhook signature verification
-- Environment variables for secrets
-
-See [security.md](@docs/security.md) for details.
+- Strict multi-tenant data isolation in Convex
+- HMAC signature verification for all WhatsApp webhooks
+- Environment variables for all production secrets
 
 ---
 
 ## 📄 License
 
 Proprietary - All rights reserved.
-
----
-
-## 🤝 Contributing
-
-This is a private project. Contact the team for contribution guidelines.
 
 ---
 
