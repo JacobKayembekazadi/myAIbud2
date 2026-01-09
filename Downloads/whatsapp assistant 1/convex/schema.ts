@@ -73,4 +73,27 @@ export default defineSchema({
     resolved: v.boolean(),
     createdAt: v.number(),
   }),
+
+  settings: defineTable({
+    tenantId: v.id("tenants"),
+    autoReplyEnabled: v.boolean(),
+    defaultInstanceId: v.optional(v.string()),
+    aiModel: v.string(), // "gemini-1.5-pro", "gemini-1.5-flash"
+    aiTemperature: v.number(),
+    aiMaxTokens: v.number(),
+    emailNotifications: v.boolean(),
+    smsNotifications: v.boolean(),
+    updatedAt: v.number(),
+  }).index("by_tenant", ["tenantId"]),
+
+  quickReplies: defineTable({
+    tenantId: v.id("tenants"),
+    label: v.string(),
+    content: v.string(),
+    category: v.optional(v.string()), // "pricing", "hours", "general"
+    isActive: v.boolean(),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  }).index("by_tenant", ["tenantId"]),
 });
+

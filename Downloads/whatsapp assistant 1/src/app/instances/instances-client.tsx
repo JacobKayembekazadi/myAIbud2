@@ -11,6 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { fetchQRCode, createWhatsAppInstance, deleteWhatsAppInstance, getInstanceStatus, syncChats } from "./actions";
 import { Plus, QrCode, Smartphone, Loader2, CheckCircle2, XCircle, Trash2, RefreshCw, MessageCircle } from "lucide-react";
 import { Id } from "@/../convex/_generated/dataModel";
+import { toast } from "sonner";
 
 export function InstancesClient() {
   const { userId } = useAuth();
@@ -163,7 +164,7 @@ export function InstancesClient() {
   return (
     <div className="space-y-6">
       {/* Create Instance Card */}
-      <Card className="bg-gradient-to-br from-gray-900 to-gray-800 border-gray-700">
+      <Card className="bg-gray-900/50 border-gray-800 backdrop-blur-sm">
         <CardHeader>
           <CardTitle className="text-white flex items-center gap-2">
             <Plus className="w-5 h-5 text-green-500" />
@@ -207,7 +208,7 @@ export function InstancesClient() {
       </Card>
 
       {/* Instances List */}
-      <Card className="bg-gray-900 border-gray-800">
+      <Card className="bg-gray-900/50 border-gray-800 backdrop-blur-sm">
         <CardHeader>
           <CardTitle className="text-white flex items-center gap-2">
             <Smartphone className="w-5 h-5 text-blue-500" />
@@ -231,7 +232,7 @@ export function InstancesClient() {
               {instances.map((instance) => (
                 <div
                   key={instance._id}
-                  className="flex items-center justify-between p-4 bg-gray-800 rounded-lg border border-gray-700 hover:border-gray-600 transition-colors"
+                  className="flex items-center justify-between p-4 bg-gray-800/50 rounded-lg border border-gray-700/50 hover:border-gray-600 transition-colors"
                 >
                   <div className="flex items-center gap-4">
                     <div className={`w-3 h-3 rounded-full ${instance.status === "connected" ? "bg-green-500" :

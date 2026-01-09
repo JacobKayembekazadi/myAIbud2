@@ -3,8 +3,11 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import ConvexClientProvider from "./ConvexClientProvider";
 import { TenantProvider } from "@/components/TenantProvider";
+import { SidebarProvider } from "@/components/SidebarContext";
 import { Sidebar } from "@/components/Sidebar";
 import { SignedIn, SignedOut } from "@clerk/nextjs";
+import { ToasterClient } from "@/components/ToasterClient";
+import { LayoutContent } from "@/components/LayoutContent";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -32,18 +35,19 @@ export default function RootLayout({
         <ConvexClientProvider>
           <SignedIn>
             <TenantProvider>
-              <div className="flex min-h-screen">
-                <Sidebar />
-                <main className="flex-1 ml-64">
-                  {children}
-                </main>
-              </div>
+              <SidebarProvider>
+                <div className="flex min-h-screen">
+                  <Sidebar />
+                  <LayoutContent>{children}</LayoutContent>
+                </div>
+              </SidebarProvider>
             </TenantProvider>
           </SignedIn>
           <SignedOut>
             {children}
           </SignedOut>
         </ConvexClientProvider>
+        <ToasterClient />
       </body>
     </html>
   );
