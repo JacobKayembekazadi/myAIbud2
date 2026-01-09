@@ -19,6 +19,7 @@ export const getSettings = query({
                 aiMaxTokens: 1000,
                 emailNotifications: true,
                 smsNotifications: false,
+                defaultInstanceId: undefined,
             };
         }
 
