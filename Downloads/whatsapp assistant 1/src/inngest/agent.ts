@@ -23,6 +23,17 @@ export const messageAgent = inngest.createFunction(
       return { status: "blocked", reason: "No credits remaining" };
     }
 
+    // Human-in-the-Loop: Check if contact is paused
+    const contact = await step.run("check-contact-status", async () => {
+      return await convex.query(api.contacts.getContact, {
+        contactId: contactId as any,
+      });
+    });
+
+    if (contact?.status === "paused") {
+      return { status: "paused", reason: "Contact is paused for human intervention" };
+    }
+
     const history = await step.run("get-history", async () => {
       return await convex.query(api.interactions.getMessages, {
         contactId: contactId as any,

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useQuery } from "convex/react";
 import { api } from "@/../convex/_generated/api";
 import { useAuth, SignedIn, SignedOut } from "@clerk/nextjs";
+import { cn } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -201,8 +202,8 @@ function Dashboard() {
                     {campaigns.slice(0, 3).map((campaign) => (
                       <div key={campaign._id} className="flex items-center gap-4 p-3 bg-gray-800/30 rounded-lg">
                         <div className={`p-2 rounded-lg ${campaign.status === 'completed' ? 'bg-green-600/20' :
-                            campaign.status === 'sending' ? 'bg-blue-600/20' :
-                              'bg-gray-600/20'
+                          campaign.status === 'sending' ? 'bg-blue-600/20' :
+                            'bg-gray-600/20'
                           }`}>
                           {campaign.status === 'completed' ? (
                             <CheckCircle2 className="w-4 h-4 text-green-500" />
@@ -293,15 +294,15 @@ function Dashboard() {
                     {instances.slice(0, 3).map((instance) => (
                       <div key={instance._id} className="flex items-center gap-3">
                         <div className={`w-2 h-2 rounded-full ${instance.status === 'connected' ? 'bg-green-500' :
-                            instance.status === 'connecting' ? 'bg-yellow-500 animate-pulse' :
-                              'bg-gray-500'
+                          instance.status === 'connecting' ? 'bg-yellow-500 animate-pulse' :
+                            'bg-gray-500'
                           }`} />
                         <span className="text-white text-sm flex-1">{instance.name}</span>
                         <Badge
                           variant="outline"
                           className={`text-xs ${instance.status === 'connected' ? 'text-green-400 border-green-600' :
-                              instance.status === 'connecting' ? 'text-yellow-400 border-yellow-600' :
-                                'text-gray-400 border-gray-600'
+                            instance.status === 'connecting' ? 'text-yellow-400 border-yellow-600' :
+                              'text-gray-400 border-gray-600'
                             }`}
                         >
                           {instance.status}
@@ -329,57 +330,90 @@ function Dashboard() {
 
 function LandingPage() {
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-950 via-gray-900 to-gray-950 flex items-center justify-center">
-      <div className="text-center max-w-2xl mx-auto px-6">
-        {/* Logo & Branding */}
-        <div className="mb-8">
-          <div className="w-24 h-24 mx-auto mb-6 bg-gradient-to-br from-green-500 to-emerald-600 rounded-3xl flex items-center justify-center shadow-lg shadow-green-500/20 animate-pulse">
-            <Bot className="w-12 h-12 text-white" />
+    <div className="min-h-screen bg-[#02040a] relative overflow-hidden flex items-center justify-center py-20">
+      {/* Background Glows */}
+      <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-emerald-500/10 blur-[120px] rounded-full" />
+      <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-blue-500/10 blur-[120px] rounded-full" />
+
+      <div className="relative z-10 text-center max-w-4xl mx-auto px-6">
+        {/* Badge */}
+        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-bold tracking-widest uppercase mb-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+          <Zap className="w-3 h-3" />
+          Next-Gen Automation
+        </div>
+
+        {/* Hero Section */}
+        <div className="mb-12">
+          <div className="w-20 h-20 mx-auto mb-8 bg-gradient-to-tr from-emerald-500 to-green-400 rounded-2xl flex items-center justify-center shadow-[0_0_30px_rgba(16,185,129,0.3)] animate-pulse">
+            <Bot className="w-10 h-10 text-white" />
           </div>
-          <h1 className="text-5xl font-bold bg-gradient-to-r from-green-400 via-emerald-400 to-teal-400 bg-clip-text text-transparent mb-4">
-            My Aibud
+
+          <h1 className="text-6xl md:text-7xl font-black tracking-tighter text-white mb-6">
+            Everything flows with <br />
+            <span className="bg-gradient-to-r from-emerald-400 via-green-400 to-teal-400 bg-clip-text text-transparent">
+              MyChatFlow
+            </span>
           </h1>
-          <p className="text-xl text-gray-400">
-            AI-Powered WhatsApp Assistant for Real Estate
+
+          <p className="text-xl text-gray-400 max-w-2xl mx-auto leading-relaxed">
+            Automate your WhatsApp conversations with premium AI. Scale your Business, engage your leads, and save thousands of hours with the industry standard.
           </p>
         </div>
 
-        {/* Features */}
-        <div className="grid grid-cols-3 gap-6 mb-10">
-          <div className="text-center group">
-            <div className="w-14 h-14 mx-auto mb-3 bg-green-600/20 rounded-xl flex items-center justify-center group-hover:bg-green-600/30 transition-colors group-hover:scale-110 duration-300">
-              <Smartphone className="w-7 h-7 text-green-500" />
-            </div>
-            <p className="text-sm text-gray-400">Connect WhatsApp</p>
-          </div>
-          <div className="text-center group">
-            <div className="w-14 h-14 mx-auto mb-3 bg-blue-600/20 rounded-xl flex items-center justify-center group-hover:bg-blue-600/30 transition-colors group-hover:scale-110 duration-300">
-              <MessageSquare className="w-7 h-7 text-blue-500" />
-            </div>
-            <p className="text-sm text-gray-400">Auto-Reply</p>
-          </div>
-          <div className="text-center group">
-            <div className="w-14 h-14 mx-auto mb-3 bg-amber-600/20 rounded-xl flex items-center justify-center group-hover:bg-amber-600/30 transition-colors group-hover:scale-110 duration-300">
-              <Zap className="w-7 h-7 text-amber-500" />
-            </div>
-            <p className="text-sm text-gray-400">AI-Powered</p>
-          </div>
+        {/* Features Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-12">
+          {[
+            { icon: Smartphone, label: "Smart Connect", desc: "One-click WhatsApp linking", color: "emerald" },
+            { icon: MessageSquare, label: "AI Conversations", desc: "Gemini 2.0 Powered engine", color: "blue" },
+            { icon: Zap, label: "Zero Latency", desc: "Instant automated responses", color: "amber" }
+          ].map((feature, i) => (
+            <Card key={i} className="bg-gray-900/40 border-gray-800/50 backdrop-blur-md hover:border-emerald-500/30 transition-all group overflow-hidden">
+              <CardContent className="pt-6">
+                <div className={cn(
+                  "w-12 h-12 rounded-xl flex items-center justify-center mb-4 transition-transform group-hover:scale-110",
+                  feature.color === 'emerald' ? "bg-emerald-500/10 text-emerald-500" :
+                    feature.color === 'blue' ? "bg-blue-500/10 text-blue-500" :
+                      "bg-amber-500/10 text-amber-500"
+                )}>
+                  <feature.icon className="w-6 h-6" />
+                </div>
+                <h3 className="text-white font-bold mb-1">{feature.label}</h3>
+                <p className="text-xs text-gray-500">{feature.desc}</p>
+              </CardContent>
+            </Card>
+          ))}
         </div>
 
-        {/* CTA Buttons */}
-        <div className="flex flex-col sm:flex-row gap-4 justify-center">
-          <Button asChild size="lg" className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-lg px-8 shadow-lg shadow-green-500/20">
-            <Link href="/sign-in">Sign In</Link>
+        {/* CTA Section */}
+        <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+          <Button asChild size="lg" className="h-14 px-10 bg-gradient-to-r from-emerald-600 to-green-500 hover:from-emerald-500 hover:to-green-400 text-white font-bold text-lg rounded-xl shadow-[0_0_20px_rgba(16,185,129,0.3)] border-0 transition-all hover:scale-105 active:scale-95 group">
+            <Link href="/sign-in" className="flex items-center gap-2">
+              Launch Platform
+              <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+            </Link>
           </Button>
-          <Button asChild size="lg" variant="outline" className="border-gray-700 text-white hover:bg-gray-800 text-lg px-8">
+
+          <Button asChild size="lg" variant="ghost" className="h-14 px-10 text-gray-400 hover:text-white hover:bg-white/5 font-semibold text-lg rounded-xl transition-all border border-gray-800/50">
             <Link href="/sign-up">Create Account</Link>
           </Button>
         </div>
 
-        {/* Trust Badge */}
-        <div className="mt-12 flex items-center justify-center gap-4 text-gray-500 text-sm">
-          <CheckCircle2 className="w-4 h-4 text-green-500" />
-          <span>Powered by WAHA + Google Gemini AI</span>
+        {/* Trust & Badges */}
+        <div className="mt-16 pt-8 border-t border-gray-800/30">
+          <div className="flex flex-wrap justify-center gap-8 opacity-40 grayscale hover:grayscale-0 transition-all duration-500">
+            <div className="flex items-center gap-2 text-white font-bold tracking-widest text-[10px] uppercase">
+              <Bot className="w-4 h-4" />
+              Gemini 2.0 Exp
+            </div>
+            <div className="flex items-center gap-2 text-white font-bold tracking-widest text-[10px] uppercase">
+              <Zap className="w-4 h-4" />
+              WAHA Plus
+            </div>
+            <div className="flex items-center gap-2 text-white font-bold tracking-widest text-[10px] uppercase">
+              <Activity className="w-4 h-4" />
+              Convex Realtime
+            </div>
+          </div>
         </div>
       </div>
     </div>

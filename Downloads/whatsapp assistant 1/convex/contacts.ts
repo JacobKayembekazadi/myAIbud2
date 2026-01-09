@@ -54,3 +54,24 @@ export const upsertContact = mutation({
     });
   },
 });
+
+export const pauseContact = mutation({
+  args: { contactId: v.id("contacts") },
+  handler: async (ctx, args) => {
+    await ctx.db.patch(args.contactId, {
+      status: "paused",
+      updatedAt: Date.now(),
+    });
+  },
+});
+
+export const resumeContact = mutation({
+  args: { contactId: v.id("contacts") },
+  handler: async (ctx, args) => {
+    await ctx.db.patch(args.contactId, {
+      status: "active",
+      updatedAt: Date.now(),
+    });
+  },
+});
+

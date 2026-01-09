@@ -20,8 +20,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "My Aibud",
-  description: "AI Real Estate Assistant",
+  title: "MyChatFlow",
+  description: "Next-Gen WhatsApp Automation Platform",
 };
 
 export default function RootLayout({
@@ -31,7 +31,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={`${geistSans.variable} ${geistMono.variable} antialiased bg-gray-950`}>
+      <body className={`${geistSans.variable} ${geistMono.variable} antialiased bg-[#02040a]`}>
         <ConvexClientProvider>
           <SignedIn>
             <TenantProvider>

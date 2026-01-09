@@ -38,8 +38,8 @@ export function Sidebar() {
 
                 {!isCollapsed && (
                     <div className="flex flex-col animate-in fade-in slide-in-from-left-2 duration-300">
-                        <span className="text-white font-bold tracking-tight text-lg leading-none">My Aibud</span>
-                        <span className="text-[10px] text-green-400 font-bold uppercase tracking-widest mt-1 opacity-80">WhatsApp AI</span>
+                        <span className="text-white font-bold tracking-tight text-lg leading-none">MyChatFlow</span>
+                        <span className="text-[10px] text-green-400 font-bold uppercase tracking-widest mt-1 opacity-80">WhatsApp Automation</span>
                     </div>
                 )}
             </div>
