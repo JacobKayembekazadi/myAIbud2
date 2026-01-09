@@ -4,6 +4,52 @@
 
 ---
 
+## 📅 January 9, 2026 - CRITICAL DEPLOYMENT ISSUES
+
+### 🚨 BLOCKER: Vercel Build Failure
+
+**Error:**
+```
+RangeError: Invalid count value: -1
+    at String.repeat (<anonymous>)
+```
+
+**Facts:**
+- ✅ Local build succeeds (`npm run build` works)
+- ❌ Vercel build fails during "Creating an optimized production build"
+- Vercel shows: `Next.js 16.0.7 (Turbopack)`
+- Node.js: 20.x (specified in `engines` field)
+
+**Root Cause Hypothesis:**
+Next.js 16 + Vercel Turbopack incompatibility
+
+**Attempted Fixes (All Failed):**
+1. Added `engines: { node: "20.x" }` to package.json
+2. Set Root Directory to `Downloads/whatsapp assistant 1` in Vercel
+3. Reverted config changes
+
+**Recommended Next Steps:**
+1. Try adding `--no-turbo` to build command in Vercel settings
+2. Or downgrade Next.js to 15.x if Turbopack issues persist
+3. Check `src/app/page.tsx` (landing page) for issues
+
+### 🚨 BLOCKER: Clerk SSL Certificate Not Issued
+
+**Problem:** `https://clerk.mychatflow.app` returns `ERR_SSL_VERSION_OR_CIPHER_MISMATCH`
+
+**DNS Status:**
+- All 5 records added to Namecheap
+- 4/5 verified in Clerk, 1 was pending
+- DNS propagation confirmed
+
+**Solution:** Contact Clerk Support to manually issue SSL certificates
+
+### ⚠️ Features Added Today (Intact in Code, Not Deployed)
+- MyChatFlow rebranding (landing page, sidebar)
+- Human-in-the-Loop feature (pause/resume AI for contacts)
+
+---
+
 ## 📅 January 8, 2026 - Production Deployment & UI Overhaul
 
 ### 🎯 Summary
