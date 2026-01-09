@@ -177,8 +177,8 @@ export function SettingsClient() {
                                     <SelectValue />
                                 </SelectTrigger>
                                 <SelectContent className="bg-gray-900 border-gray-800">
-                                    <SelectItem value="gemini-1.5-flash">Gemini 1.5 Flash (Fast & Cheap)</SelectItem>
-                                    <SelectItem value="gemini-1.5-pro">Gemini 1.5 Pro (Powerful)</SelectItem>
+                                    <SelectItem value="gemini-2.0-flash-exp">Gemini 2.0 Flash (Fast & Cheap)</SelectItem>
+                                    <SelectItem value="gemini-exp-1206">Gemini Experimental (Most Powerful)</SelectItem>
                                 </SelectContent>
                             </Select>
                         </div>
