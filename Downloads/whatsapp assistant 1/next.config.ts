@@ -8,8 +8,13 @@ const nextConfig: NextConfig = {
     },
   },
   // Clerk Proxy Configuration - bypasses custom subdomain SSL issues
-  env: {
-    NEXT_PUBLIC_CLERK_PROXY_URL: 'https://mychatflow.app/__clerk',
+  async rewrites() {
+    return [
+      {
+        source: '/__clerk/:path*',
+        destination: 'https://clerk.mychatflow.app/:path*',
+      },
+    ];
   },
 };
 
