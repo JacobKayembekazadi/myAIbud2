@@ -84,26 +84,22 @@ export const wahaProvider: WhatsAppProvider = {
         await new Promise((resolve) => setTimeout(resolve, 2000));
       }
 
-      // Get QR code
-      const response = await wahaFetch(
-        `/api/sessions/${instanceId}/auth/qr`,
-        { method: "GET" }
-      );
+      // WAHA 2026.x returns a PNG from `/api/{session}/auth/qr` (no `/sessions`).
+      // We convert it to a data URL so the UI can render it in an <img src="...">.
+      const response = await wahaFetch(`/api/${instanceId}/auth/qr`, {
+        method: "GET",
+      });
 
       if (!response.ok) {
-        return { error: `Failed to get QR: ${response.status}` };
+        const errorText = await response.text().catch(() => "");
+        return {
+          error: `Failed to get QR: ${response.status}${errorText ? ` - ${errorText}` : ""}`,
+        };
       }
 
-      const data = await response.json();
-      
-      // WAHA returns QR in different formats depending on version
-      const qrValue = data.value || data.qr || data.base64;
-      
-      if (!qrValue) {
-        return { error: "No QR code available - device may already be connected" };
-      }
-
-      return { base64: qrValue };
+      const buf = Buffer.from(await response.arrayBuffer());
+      const base64 = buf.toString("base64");
+      return { base64: `data:image/png;base64,${base64}` };
     } catch (error) {
       console.error("WAHA getQRCode exception:", error);
       return {
