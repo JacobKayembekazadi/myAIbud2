@@ -1,19 +1,24 @@
 "use client";
 
-import { useQuery } from "convex/react";
-import { api } from "@/../convex/_generated/api";
-import { Id } from "@/../convex/_generated/dataModel";
 import { Button } from "@/components/ui/button";
 import { Download } from "lucide-react";
 import { toast } from "sonner";
 
-interface ExportContactsButtonProps {
-  tenantId: Id<"tenants">;
+interface Contact {
+  phone: string;
+  name?: string;
+  status: string;
+  tags?: string[];
+  notes?: string;
+  createdAt: number;
+  lastInteraction?: number;
 }
 
-export function ExportContactsButton({ tenantId }: ExportContactsButtonProps) {
-  const contacts = useQuery(api.contacts.getContactsForExport, { tenantId });
+interface ExportContactsButtonProps {
+  contacts: Contact[] | undefined;
+}
 
+export function ExportContactsButton({ contacts }: ExportContactsButtonProps) {
   const handleExport = () => {
     if (!contacts || contacts.length === 0) {
       toast.error("No contacts to export");
@@ -27,12 +32,12 @@ export function ExportContactsButton({ tenantId }: ExportContactsButtonProps) {
       ...contacts.map((contact) =>
         [
           `"${contact.phone}"`,
-          `"${contact.name.replace(/"/g, '""')}"`,
+          `"${(contact.name ?? "").replace(/"/g, '""')}"`,
           `"${contact.status}"`,
-          `"${contact.tags.replace(/"/g, '""')}"`,
-          `"${contact.notes.replace(/"/g, '""')}"`,
-          `"${contact.createdAt}"`,
-          `"${contact.lastInteraction}"`,
+          `"${(contact.tags?.join(";") ?? "").replace(/"/g, '""')}"`,
+          `"${(contact.notes ?? "").replace(/"/g, '""')}"`,
+          `"${new Date(contact.createdAt).toISOString()}"`,
+          `"${contact.lastInteraction ? new Date(contact.lastInteraction).toISOString() : ""}"`,
         ].join(",")
       ),
     ];
@@ -65,5 +70,3 @@ export function ExportContactsButton({ tenantId }: ExportContactsButtonProps) {
     </Button>
   );
 }
-
-

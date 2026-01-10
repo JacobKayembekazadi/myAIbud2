@@ -224,7 +224,7 @@ export default function ContactsPage() {
               <Upload className="w-4 h-4 mr-2" />
               Import
             </Button>
-            {tenant && <ExportContactsButton tenantId={tenant._id} />}
+            <ExportContactsButton contacts={contacts?.filter(c => !c.isDemo)} />
           </div>
         </div>
 
