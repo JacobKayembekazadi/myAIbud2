@@ -38,7 +38,6 @@ export function SetupWizard({
   onOpenChange,
   initialStep = 0,
 }: SetupWizardProps) {
-  const tenant = useQuery(api.tenants.getTenant, { clerkId: "" }); // Will be overridden
   const instances = useQuery(api.instances.listInstances, { tenantId });
   const completeOnboarding = useMutation(api.tenants.completeOnboarding);
   const updateStep = useMutation(api.tenants.updateOnboardingStep);
@@ -208,4 +207,5 @@ export function SetupWizard({
     </Dialog>
   );
 }
+
 

@@ -232,11 +232,13 @@ export function ImportContactsDialog({
                   className="hidden"
                   id="csv-upload"
                 />
-                <label htmlFor="csv-upload">
-                  <Button variant="outline" className="border-gray-700 text-gray-300 cursor-pointer" asChild>
-                    <span>Choose File</span>
-                  </Button>
-                </label>
+                <Button
+                  variant="outline"
+                  className="border-gray-700 text-gray-300 cursor-pointer"
+                  onClick={() => document.getElementById("csv-upload")?.click()}
+                >
+                  Choose File
+                </Button>
               </div>
 
               {/* Sample Download */}
@@ -376,4 +378,5 @@ export function ImportContactsDialog({
     </Dialog>
   );
 }
+
 

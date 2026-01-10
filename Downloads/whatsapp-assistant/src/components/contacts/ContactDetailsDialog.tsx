@@ -10,6 +10,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -113,6 +114,9 @@ export function ContactDetailsDialog({
             <User className="w-5 h-5 text-emerald-500" />
             Edit Contact
           </DialogTitle>
+          <DialogDescription className="text-gray-400">
+            Update contact details, tags, and notes.
+          </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-5 py-4">
@@ -272,4 +276,5 @@ export function ContactDetailsDialog({
     </Dialog>
   );
 }
+
 
