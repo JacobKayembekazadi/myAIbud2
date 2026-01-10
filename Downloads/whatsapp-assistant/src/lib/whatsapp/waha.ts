@@ -220,9 +220,8 @@ export const wahaProvider: WhatsAppProvider = {
 
   async getChats(instanceId: string): Promise<ChatInfo[]> {
     try {
-      const response = await wahaFetch(
-        `/api/sessions/${instanceId}/chats`
-      );
+      // WAHA 2026.x uses /api/{session}/chats (not /api/sessions/{session}/chats)
+      const response = await wahaFetch(`/api/${instanceId}/chats`);
 
       if (!response.ok) {
         console.error("WAHA getChats error:", response.status);
