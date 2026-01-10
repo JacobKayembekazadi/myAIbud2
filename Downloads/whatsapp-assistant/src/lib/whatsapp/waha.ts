@@ -128,6 +128,13 @@ export const wahaProvider: WhatsAppProvider = {
               {
                 url: webhookUrl,
                 events: ["message", "session.status"], // Include session status for real-time updates
+                hmac: WAHA_WEBHOOK_SECRET ? {
+                  key: WAHA_WEBHOOK_SECRET,
+                } : undefined,
+                retries: {
+                  attempts: 3,
+                  delaySeconds: 2,
+                },
               },
             ],
           } : {},
