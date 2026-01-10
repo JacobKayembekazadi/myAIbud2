@@ -49,10 +49,12 @@ export async function getInstanceStatus(instanceId: string) {
   try {
     const result = await whatsapp.getInstanceStatus(instanceId);
     if (!result) {
+      console.log(`[getInstanceStatus] No result for ${instanceId}, returning disconnected`);
       return { status: "disconnected" as const };
     }
+    console.log(`[getInstanceStatus] ${instanceId} -> ${result.status}`);
     return {
-      status: result.status as "connected" | "disconnected",
+      status: result.status, // Can be "connected", "disconnected", or "connecting"
       phoneNumber: result.phoneNumber
     };
   } catch (error) {
