@@ -230,10 +230,19 @@ export const wahaProvider: WhatsAppProvider = {
 
       const data = await response.json();
 
-      return (data || []).map((chat: { id: string; name?: string }) => ({
-        id: chat.id,
-        name: chat.name,
-      }));
+      // WAHA 2026.x returns id as an object with _serialized field
+      return (data || []).map((chat: { 
+        id: { _serialized: string } | string; 
+        name?: string;
+        isGroup?: boolean;
+      }) => {
+        // Handle both object and string id formats
+        const chatId = typeof chat.id === 'string' ? chat.id : chat.id._serialized;
+        return {
+          id: chatId,
+          name: chat.name,
+        };
+      }).filter((chat: { id: string }) => !chat.id.includes("@g.us")); // Filter out groups
     } catch (error) {
       console.error("WAHA getChats exception:", error);
       return [];
