@@ -117,18 +117,23 @@ export const wahaProvider: WhatsAppProvider = {
       // Generate a unique session ID
       const instanceId = `session-${name.toLowerCase().replace(/[^a-z0-9]/g, "-")}-${Date.now()}`;
 
+      const webhookUrl = process.env.NEXT_PUBLIC_APP_URL 
+        ? `${process.env.NEXT_PUBLIC_APP_URL}/api/webhooks/whatsapp`
+        : null;
+
       const response = await wahaFetch("/api/sessions/", {
         method: "POST",
         body: JSON.stringify({
           name: instanceId,
-          config: {
+          start: true, // Auto-start the session
+          config: webhookUrl ? {
             webhooks: [
               {
-                url: `${process.env.NEXT_PUBLIC_APP_URL || ""}/api/webhooks/whatsapp`,
-                events: ["message", "message.any", "session.status"],
+                url: webhookUrl,
+                events: ["message"],
               },
             ],
-          },
+          } : {},
         }),
       });
 
@@ -137,12 +142,9 @@ export const wahaProvider: WhatsAppProvider = {
         console.error("WAHA createInstance error:", errorText);
         return {
           success: false,
-          error: `Failed to create instance: ${response.status}`,
+          error: `Failed to create instance: ${response.status} - ${errorText}`,
         };
       }
-
-      // Start the session
-      await wahaFetch(`/api/sessions/${instanceId}/start`, { method: "POST" });
 
       return {
         success: true,
