@@ -108,10 +108,10 @@ export async function createInstance(tenantId: Id<"tenants">, name: string) {
     await convex.mutation(api.instances.createInstance, {
       tenantId,
       name,
-      instanceId: result.instance.id,
+      instanceId: result.instance.instanceId,
     });
 
-    return { success: true, instanceId: result.instance.id };
+    return { success: true, instanceId: result.instance.instanceId };
   } catch (error) {
     console.error("Failed to create instance:", error);
     return { success: false, error: error instanceof Error ? error.message : "Failed to create instance" };
