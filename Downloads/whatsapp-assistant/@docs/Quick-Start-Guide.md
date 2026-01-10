@@ -216,7 +216,17 @@ Open [http://localhost:3000](http://localhost:3000)
 2. Create an account
 3. Verify redirect to dashboard
 
-### Test Instance Creation
+### Use the Onboarding Wizard (New!)
+New users will see a **Setup Wizard** that guides through:
+
+1. **Welcome Step** - Overview of features, click "Get Started"
+2. **Create Instance** - Enter instance name, click "Create Instance"
+3. **Scan QR Code** - Scan with WhatsApp mobile app
+4. **Test AI** - Try sample messages to see AI responses
+
+You can also access the wizard from the **Progress Widget** on the dashboard.
+
+### Test Instance Creation (Manual)
 1. Go to `/instances`
 2. Click "Create New Instance"
 3. Enter a name (e.g., "Test Instance")
@@ -232,6 +242,14 @@ Open [http://localhost:3000](http://localhost:3000)
 ### Test Chat Sync
 1. Once connected, click "Sync Chats"
 2. Go to `/chat` to see imported contacts
+
+### Test Contacts Management (New!)
+1. Go to `/contacts` to see the full contacts table
+2. Use search and filters to find contacts
+3. Select multiple contacts for bulk actions (Pause/Resume/Delete)
+4. Click on a contact row's menu → Edit to open the details dialog
+5. Try importing contacts via CSV using the "Import" button
+6. Export all contacts to CSV using the "Export" button
 
 ---
 

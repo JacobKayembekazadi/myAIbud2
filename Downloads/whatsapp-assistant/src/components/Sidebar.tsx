@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { UserButton } from "@clerk/nextjs";
-import { Home, MessageSquare, Smartphone, Upload, Bot, ChevronLeft, ChevronRight, Settings, LayoutDashboard } from "lucide-react";
+import { Home, MessageSquare, Smartphone, Upload, Bot, ChevronLeft, ChevronRight, Settings, LayoutDashboard, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useSidebar } from "./SidebarContext";
 import { cn } from "@/lib/utils";
@@ -11,6 +11,7 @@ import { cn } from "@/lib/utils";
 const navItems = [
     { href: "/", label: "Dashboard", icon: LayoutDashboard },
     { href: "/instances", label: "Instances", icon: Smartphone },
+    { href: "/contacts", label: "Contacts", icon: Users },
     { href: "/campaigns", label: "Campaigns", icon: Upload },
     { href: "/chat", label: "Chats", icon: MessageSquare },
     { href: "/settings", label: "Settings", icon: Settings },

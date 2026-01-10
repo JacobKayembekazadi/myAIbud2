@@ -27,7 +27,7 @@
 | Instance Status Polling | ✅ Working | 5-second polling + webhook-based updates |
 | Session Status Webhooks | ✅ Working | Real-time status updates from WAHA |
 | Contact Import | ✅ Working | Sync existing WhatsApp chats |
-| Chat/Contact List UI | ✅ Working | View imported contacts with status |
+| Chat/Contact List UI | ✅ Working | View imported contacts with search & filters |
 | Dashboard UI | ✅ Working | Modern dark theme with analytics cards |
 | Collapsible Sidebar | ✅ Working | localStorage-persisted navigation |
 | Settings Page | ✅ Working | AI Config, Profile, Notifications |
@@ -36,6 +36,12 @@
 | Vercel Deployment | ✅ Working | Production live at mychatflow.app |
 | Skeleton Loading States | ✅ Working | Dashboard and Instances pages |
 | Toast Notifications | ✅ Working | Success/error feedback via Sonner |
+| **Onboarding Wizard** | ✅ Working | 4-step setup wizard for new users |
+| **Contacts Management** | ✅ Working | Full CRUD, bulk actions, search/filter |
+| **Contact Details Dialog** | ✅ Working | Edit name, tags, notes, status |
+| **CSV Import/Export** | ✅ Working | Bulk contact import and export |
+| **Progress Widget** | ✅ Working | Dashboard onboarding progress tracker |
+| **Enhanced Empty States** | ✅ Working | Better CTAs throughout the app |
 
 ### Pending Features
 | Feature | Status | Priority |
@@ -88,7 +94,11 @@
 ## 📁 Project Structure (Key Directories)
 
 - `src/app/`: Next.js pages and server actions
+  - `src/app/contacts/`: Dedicated contacts management page
+  - `src/app/chat/`: Chat interface with search/filter sidebar
 - `src/components/`: Reusable UI components (Sidebar, Layout, etc.)
+  - `src/components/contacts/`: Contact management dialogs
+  - `src/components/onboarding/`: Setup wizard and step components
 - `src/lib/whatsapp/`: WhatsApp provider abstraction (WAHA focus)
 - `src/inngest/`: Background job definitions (AI Agent, Campaigns)
 - `convex/`: Real-time database schema and functions

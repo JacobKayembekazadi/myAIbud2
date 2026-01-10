@@ -7,6 +7,13 @@ export default defineSchema({
     email: v.string(),
     name: v.optional(v.string()),
     tier: v.string(),
+    // Onboarding tracking
+    onboardingCompleted: v.optional(v.boolean()),
+    onboardingStep: v.optional(v.number()),
+    hasCreatedInstance: v.optional(v.boolean()),
+    hasConnectedWhatsApp: v.optional(v.boolean()),
+    hasSyncedContacts: v.optional(v.boolean()),
+    hasTestedAI: v.optional(v.boolean()),
     createdAt: v.number(),
     updatedAt: v.number(),
   }).index("by_clerkId", ["clerkId"]),
@@ -29,12 +36,15 @@ export default defineSchema({
     name: v.optional(v.string()),
     status: v.string(),
     tags: v.optional(v.array(v.string())),
+    notes: v.optional(v.string()),
+    isDemo: v.optional(v.boolean()),
     lastInteraction: v.optional(v.number()),
     createdAt: v.number(),
     updatedAt: v.number(),
   })
     .index("by_phone", ["phone", "instanceId"])
-    .index("by_tenant", ["tenantId"]),
+    .index("by_tenant", ["tenantId"])
+    .index("by_status", ["tenantId", "status"]),
 
   subscriptionUsage: defineTable({
     tenantId: v.id("tenants"),

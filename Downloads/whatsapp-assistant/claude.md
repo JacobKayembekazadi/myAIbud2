@@ -50,9 +50,9 @@
 
 ### Database
 - `convex/schema.ts` - Database schema definition
-- `convex/tenants.ts` - Tenant CRUD operations
+- `convex/tenants.ts` - Tenant CRUD + onboarding mutations
 - `convex/instances.ts` - Instance management
-- `convex/contacts.ts` - Contact management
+- `convex/contacts.ts` - Contact CRUD, bulk actions, import/export
 - `convex/interactions.ts` - Message history
 - `convex/subscriptionUsage.ts` - Credit tracking
 - `convex/auth.config.ts` - Clerk integration
@@ -60,6 +60,20 @@
 ### Webhooks
 - `src/app/api/webhooks/whatsapp/route.ts` - WAHA webhook handler
 - `src/app/api/inngest/route.ts` - Inngest webhook handler
+
+### Contacts Management
+- `src/app/contacts/page.tsx` - Full contacts table with bulk actions
+- `src/app/chat/layout.tsx` - Chat sidebar with search/filter
+- `src/components/contacts/ContactDetailsDialog.tsx` - Edit contact modal
+- `src/components/contacts/ImportContactsDialog.tsx` - CSV import dialog
+- `src/components/contacts/ExportContactsButton.tsx` - CSV export button
+
+### Onboarding System
+- `src/components/onboarding/SetupWizard.tsx` - Main wizard modal
+- `src/components/onboarding/steps/WelcomeStep.tsx` - Step 1: Welcome
+- `src/components/onboarding/steps/CreateInstanceStep.tsx` - Step 2: Create instance
+- `src/components/onboarding/steps/ScanQRStep.tsx` - Step 3: Scan QR
+- `src/components/onboarding/steps/TestAIStep.tsx` - Step 4: Test AI
 
 ---
 
@@ -239,14 +253,31 @@ Incoming message → WAHA webhook → Vercel API
 
 ## Testing Checklist
 
+### Authentication & Onboarding
 - [ ] User can sign up with Google
 - [ ] Tenant record created in Convex
+- [ ] Onboarding wizard appears for new users
+- [ ] Progress widget shows on dashboard
+- [ ] Wizard steps complete properly
+
+### WhatsApp Integration
 - [ ] User can create WhatsApp instance
 - [ ] QR code displays with countdown timer
 - [ ] Phone scan updates status to "connected"
 - [ ] Incoming message triggers AI response
 - [ ] Credits decrement after AI response
 - [ ] Multiple users have isolated data
+
+### Contacts Management
+- [ ] Search bar filters contacts in real-time
+- [ ] Status tabs filter by active/paused/new
+- [ ] Contacts page shows all contacts in table
+- [ ] Bulk selection works with checkboxes
+- [ ] Bulk pause/resume/delete works
+- [ ] Contact details dialog opens and saves
+- [ ] Tags can be added and removed
+- [ ] CSV import parses and imports contacts
+- [ ] CSV export downloads all contacts
 
 ---
 
@@ -262,4 +293,5 @@ Incoming message → WAHA webhook → Vercel API
 ---
 
 *Last Updated: January 10, 2026*
+
 

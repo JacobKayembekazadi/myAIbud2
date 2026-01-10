@@ -103,9 +103,12 @@ MyChatFlow is a serverless-first SaaS application using modern web technologies 
 ### 3. Database Layer (Convex)
 
 **Schema Tables:**
-- `tenants` - User accounts (indexed by clerkId)
+- `tenants` - User accounts with onboarding tracking (indexed by clerkId)
+  - Includes: `onboardingCompleted`, `onboardingStep`, `hasCreatedInstance`, `hasConnectedWhatsApp`, `hasSyncedContacts`, `hasTestedAI`
 - `instances` - WhatsApp instances (indexed by tenantId, instanceId)
-- `contacts` - WhatsApp contacts (indexed by tenantId, phone+instanceId)
+- `contacts` - WhatsApp contacts with notes/tags (indexed by tenantId, phone+instanceId, status)
+  - Includes: `notes`, `isDemo`, `tags[]`
+  - New index: `by_status` for filtered queries
 - `interactions` - Message history (indexed by contactId, tenantId)
 - `subscriptionUsage` - Credit tracking (indexed by tenantId)
 - `campaigns` - Bulk message campaigns (indexed by tenantId)
@@ -281,6 +284,84 @@ All queries are scoped by `tenantId`:
 - 1 credit = 1 AI interaction (inbound + outbound)
 - AI agent checks credits before responding
 - System blocks when credits exhausted
+
+---
+
+---
+
+## Onboarding System Architecture
+
+The onboarding system provides a guided setup experience for new users.
+
+### Components
+
+```
+SetupWizard (Modal)
+    ├── WelcomeStep       → Feature overview, Get Started button
+    ├── CreateInstanceStep → Inline form to create WhatsApp instance
+    ├── ScanQRStep        → QR code display with auto-detect connection
+    └── TestAIStep        → Demo conversation with simulated AI
+```
+
+### Onboarding State (Tenant Record)
+
+```typescript
+tenants: {
+  onboardingCompleted: boolean,  // True when all steps complete
+  onboardingStep: number,        // Current step (0-4)
+  hasCreatedInstance: boolean,   // Step 1 complete
+  hasConnectedWhatsApp: boolean, // Step 2 complete
+  hasSyncedContacts: boolean,    // Step 3 complete
+  hasTestedAI: boolean,          // Step 4 complete
+}
+```
+
+### Progress Widget
+
+Located on dashboard, shows:
+- Completion percentage
+- Checklist of 4 steps with checkmarks
+- "Continue Setup" button to resume wizard
+
+---
+
+## Contacts Management Architecture
+
+Full contact management system with CRUD, bulk actions, and import/export.
+
+### Contact Mutations
+
+```typescript
+// convex/contacts.ts
+updateContact({ contactId, name?, tags?, notes?, status? })
+deleteContact({ contactId })
+bulkPauseContacts({ contactIds[] })
+bulkResumeContacts({ contactIds[] })
+bulkDeleteContacts({ contactIds[] })
+importContacts({ tenantId, instanceId, contacts[] })
+getContactsForExport({ tenantId })
+createDemoContact({ tenantId, instanceId })
+```
+
+### UI Components
+
+```
+src/components/contacts/
+    ├── ContactDetailsDialog.tsx  → Edit contact modal
+    ├── ImportContactsDialog.tsx  → CSV import with preview
+    └── ExportContactsButton.tsx  → One-click CSV export
+
+src/app/contacts/page.tsx        → Full contacts table with bulk actions
+src/app/chat/layout.tsx          → Search/filter sidebar
+```
+
+### Contact Status Flow
+
+```
+new → active ←→ paused
+        ↓
+     (deleted)
+```
 
 ---
 

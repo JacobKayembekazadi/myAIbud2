@@ -4,7 +4,88 @@
 
 ---
 
-## 📅 January 10, 2026 - PRODUCTION LAUNCH 🎉
+## 📅 January 10, 2026 (Evening) - FULL UX OVERHAUL 🚀
+
+### 🎯 Summary
+Major UX improvements including guided onboarding wizard and comprehensive contacts management system.
+
+### ✅ New Features
+
+#### Onboarding System
+| Feature | Description |
+|---------|-------------|
+| **SetupWizard** | 4-step modal wizard guiding new users through setup |
+| **WelcomeStep** | Feature overview with attractive cards |
+| **CreateInstanceStep** | Inline form to create WhatsApp instance |
+| **ScanQRStep** | QR display with countdown, auto-detect connection |
+| **TestAIStep** | Interactive demo chat with simulated AI responses |
+| **Progress Widget** | Dashboard widget showing completion percentage |
+| **Enhanced Empty States** | Better CTAs throughout the app |
+
+#### Contacts Management
+| Feature | Description |
+|---------|-------------|
+| **Search & Filter** | Search bar in chat sidebar with status tabs |
+| **Dedicated Contacts Page** | `/contacts` with full table view |
+| **Contact Details Dialog** | Edit name, tags, notes, status |
+| **Tags System** | Add/remove tags per contact |
+| **Bulk Actions** | Select multiple contacts for Pause/Resume/Delete |
+| **CSV Import** | Upload and preview contacts before import |
+| **CSV Export** | One-click export all contacts |
+
+### 🗃️ Database Schema Updates
+
+**Tenants table (new fields):**
+```typescript
+onboardingCompleted: v.optional(v.boolean()),
+onboardingStep: v.optional(v.number()),
+hasCreatedInstance: v.optional(v.boolean()),
+hasConnectedWhatsApp: v.optional(v.boolean()),
+hasSyncedContacts: v.optional(v.boolean()),
+hasTestedAI: v.optional(v.boolean()),
+```
+
+**Contacts table (new fields):**
+```typescript
+notes: v.optional(v.string()),
+isDemo: v.optional(v.boolean()),
+// New index: by_status
+```
+
+### 📁 New Files Created
+
+```
+src/app/contacts/page.tsx                    # Contacts management page
+src/components/contacts/
+  ContactDetailsDialog.tsx                   # Edit contact modal
+  ImportContactsDialog.tsx                   # CSV import modal
+  ExportContactsButton.tsx                   # CSV export button
+src/components/onboarding/
+  SetupWizard.tsx                           # Main wizard modal
+  steps/
+    WelcomeStep.tsx
+    CreateInstanceStep.tsx
+    ScanQRStep.tsx
+    TestAIStep.tsx
+```
+
+### 📝 Modified Files
+
+- `convex/schema.ts` - Added onboarding + notes fields
+- `convex/tenants.ts` - Added onboarding mutations
+- `convex/contacts.ts` - Added CRUD + bulk + import/export
+- `src/app/chat/layout.tsx` - Added search + filters
+- `src/app/page.tsx` - Added wizard + progress + empty states
+- `src/app/instances/actions.ts` - Added createInstance, getQRCode helpers
+- `src/components/Sidebar.tsx` - Added Contacts nav link
+
+### 🐛 Bug Fixes
+- Fixed contact filtering to exclude demo contacts from main views
+- Added proper tenant scoping to all new queries
+
+---
+
+## 📅 January 10, 2026 (Morning) - PRODUCTION LAUNCH 🎉
 
 ### 🎯 Summary
 All critical deployment blockers resolved. MyChatFlow is now **production-ready** with full multi-user support.

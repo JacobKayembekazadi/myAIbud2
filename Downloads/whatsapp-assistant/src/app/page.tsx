@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useState } from "react";
 import { useQuery } from "convex/react";
 import { api } from "@/../convex/_generated/api";
 import { useAuth, SignedIn, SignedOut } from "@clerk/nextjs";
@@ -23,8 +24,13 @@ import {
   CheckCircle2,
   Clock,
   TrendingUp,
-  Activity
+  Activity,
+  Sparkles,
+  Play,
+  Rocket,
 } from "lucide-react";
+
+import { SetupWizard } from "@/components/onboarding/SetupWizard";
 
 function DashboardSkeleton() {
   return (
@@ -104,6 +110,138 @@ function DashboardSkeleton() {
   );
 }
 
+// Onboarding Progress Widget
+function OnboardingProgress({
+  tenant,
+  onOpenWizard,
+}: {
+  tenant: {
+    _id: any;
+    hasCreatedInstance?: boolean;
+    hasConnectedWhatsApp?: boolean;
+    hasSyncedContacts?: boolean;
+    hasTestedAI?: boolean;
+    onboardingCompleted?: boolean;
+  };
+  onOpenWizard: () => void;
+}) {
+  const steps = [
+    { key: "create", label: "Create Instance", done: tenant.hasCreatedInstance },
+    { key: "connect", label: "Connect WhatsApp", done: tenant.hasConnectedWhatsApp },
+    { key: "sync", label: "Sync Contacts", done: tenant.hasSyncedContacts },
+    { key: "test", label: "Test AI", done: tenant.hasTestedAI },
+  ];
+
+  const completedCount = steps.filter((s) => s.done).length;
+  const progressPercent = (completedCount / steps.length) * 100;
+
+  if (tenant.onboardingCompleted) return null;
+
+  return (
+    <Card className="bg-gradient-to-br from-emerald-950/50 to-gray-900 border-emerald-800/50 mb-6 overflow-hidden relative">
+      {/* Background decoration */}
+      <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
+      
+      <CardContent className="p-6 relative">
+        <div className="flex items-start justify-between gap-4 mb-4">
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-emerald-500 to-green-600 flex items-center justify-center shadow-lg shadow-emerald-500/20">
+              <Rocket className="w-6 h-6 text-white" />
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold text-white">Complete Your Setup</h3>
+              <p className="text-sm text-gray-400">
+                {completedCount === 0
+                  ? "Get started with MyChatFlow"
+                  : `${completedCount} of ${steps.length} steps completed`}
+              </p>
+            </div>
+          </div>
+          <Button
+            onClick={onOpenWizard}
+            className="bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg shadow-emerald-500/20"
+          >
+            <Play className="w-4 h-4 mr-2" />
+            Continue Setup
+          </Button>
+        </div>
+
+        <div className="space-y-3">
+          <Progress value={progressPercent} className="h-2 bg-gray-800" />
+          <div className="grid grid-cols-4 gap-2">
+            {steps.map((step, idx) => (
+              <div
+                key={step.key}
+                className={`flex items-center gap-2 p-2 rounded-lg transition-colors ${
+                  step.done
+                    ? "bg-emerald-500/10 text-emerald-400"
+                    : "bg-gray-800/50 text-gray-500"
+                }`}
+              >
+                {step.done ? (
+                  <CheckCircle2 className="w-4 h-4 shrink-0" />
+                ) : (
+                  <span className="w-4 h-4 rounded-full border border-current flex items-center justify-center text-[10px] shrink-0">
+                    {idx + 1}
+                  </span>
+                )}
+                <span className="text-xs font-medium truncate">{step.label}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+// Enhanced Empty State Component
+function EmptyState({
+  icon: Icon,
+  title,
+  description,
+  actionLabel,
+  actionHref,
+  variant = "default",
+}: {
+  icon: React.ElementType;
+  title: string;
+  description: string;
+  actionLabel: string;
+  actionHref: string;
+  variant?: "default" | "primary";
+}) {
+  return (
+    <div className="text-center py-8">
+      <div
+        className={cn(
+          "w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4",
+          variant === "primary"
+            ? "bg-gradient-to-br from-emerald-500 to-green-600 shadow-lg shadow-emerald-500/20"
+            : "bg-gray-800"
+        )}
+      >
+        <Icon className={cn("w-8 h-8", variant === "primary" ? "text-white" : "text-gray-500")} />
+      </div>
+      <h4 className="text-white font-medium mb-1">{title}</h4>
+      <p className="text-gray-500 text-sm mb-4 max-w-xs mx-auto">{description}</p>
+      <Button
+        asChild
+        className={cn(
+          variant === "primary"
+            ? "bg-emerald-600 hover:bg-emerald-700"
+            : "bg-gray-800 hover:bg-gray-700"
+        )}
+      >
+        <Link href={actionHref}>
+          {actionLabel}
+          <ArrowRight className="w-4 h-4 ml-2" />
+        </Link>
+      </Button>
+    </div>
+  );
+}
+
 function Dashboard() {
   const { userId } = useAuth();
   const tenant = useQuery(api.tenants.getTenant, userId ? { clerkId: userId } : "skip");
@@ -111,6 +249,8 @@ function Dashboard() {
   const contacts = useQuery(api.contacts.listContacts, tenant ? { tenantId: tenant._id } : "skip");
   const usage = useQuery(api.subscriptionUsage.getUsage, tenant ? { tenantId: tenant._id } : "skip");
   const campaigns = useQuery(api.campaigns.listCampaigns, tenant ? { tenantId: tenant._id } : "skip");
+
+  const [wizardOpen, setWizardOpen] = useState(false);
 
   // Show skeleton while loading
   if (tenant === undefined || instances === undefined || contacts === undefined) {
@@ -123,7 +263,8 @@ function Dashboard() {
   const creditPercentage = (creditsUsed / creditsLimit) * 100;
 
   const connectedInstances = instances?.filter(i => i.status === 'connected').length ?? 0;
-  const recentContacts = contacts?.slice(0, 5) ?? [];
+  const recentContacts = contacts?.filter(c => !c.isDemo).slice(0, 5) ?? [];
+  const showOnboarding = tenant && !tenant.onboardingCompleted;
 
   return (
     <div className="min-h-screen bg-gray-950 p-8">
@@ -139,6 +280,11 @@ function Dashboard() {
             System Active
           </Badge>
         </div>
+
+        {/* Onboarding Progress Widget */}
+        {showOnboarding && tenant && (
+          <OnboardingProgress tenant={tenant} onOpenWizard={() => setWizardOpen(true)} />
+        )}
 
         {/* Stats Grid - 4 columns now */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
@@ -167,7 +313,7 @@ function Dashboard() {
               </div>
             </CardHeader>
             <CardContent>
-              <p className="text-4xl font-bold text-white">{contacts?.length ?? 0}</p>
+              <p className="text-4xl font-bold text-white">{contacts?.filter(c => !c.isDemo).length ?? 0}</p>
               <div className="flex items-center gap-2 mt-2">
                 <TrendingUp className="w-3 h-3 text-green-400" />
                 <span className="text-xs text-gray-500">People reached</span>
@@ -276,7 +422,7 @@ function Dashboard() {
             </Card>
 
             {/* Recent Campaigns */}
-            {campaigns && campaigns.length > 0 && (
+            {campaigns && campaigns.length > 0 ? (
               <Card className="bg-gray-900/50 border-gray-800">
                 <CardHeader>
                   <CardTitle className="text-white">Recent Campaigns</CardTitle>
@@ -314,6 +460,19 @@ function Dashboard() {
                       </div>
                     ))}
                   </div>
+                </CardContent>
+              </Card>
+            ) : (
+              <Card className="bg-gray-900/50 border-gray-800">
+                <CardContent className="py-8">
+                  <EmptyState
+                    icon={Send}
+                    title="No Campaigns Yet"
+                    description="Create your first campaign to reach multiple contacts at once with personalized messages."
+                    actionLabel="Create Campaign"
+                    actionHref="/campaigns"
+                    variant="default"
+                  />
                 </CardContent>
               </Card>
             )}
@@ -354,15 +513,18 @@ function Dashboard() {
                       </Link>
                     ))}
                     <Button asChild variant="ghost" className="w-full text-gray-400 hover:text-white">
-                      <Link href="/chat">View all contacts →</Link>
+                      <Link href="/contacts">View all contacts →</Link>
                     </Button>
                   </div>
                 ) : (
-                  <div className="text-center py-8">
-                    <Users className="w-12 h-12 text-gray-600 mx-auto mb-3" />
-                    <p className="text-gray-500 text-sm">No contacts yet</p>
-                    <p className="text-gray-600 text-xs mt-1">Connect WhatsApp to sync contacts</p>
-                  </div>
+                  <EmptyState
+                    icon={Users}
+                    title="No Contacts Yet"
+                    description="Connect WhatsApp to start syncing your contacts automatically."
+                    actionLabel="Connect WhatsApp"
+                    actionHref="/instances"
+                    variant="primary"
+                  />
                 )}
               </CardContent>
             </Card>
@@ -395,19 +557,30 @@ function Dashboard() {
                     ))}
                   </div>
                 ) : (
-                  <div className="text-center py-4">
-                    <Smartphone className="w-8 h-8 text-gray-600 mx-auto mb-2" />
-                    <p className="text-gray-500 text-sm">No instances</p>
-                    <Button asChild size="sm" className="mt-2 bg-green-600 hover:bg-green-700">
-                      <Link href="/instances">Create Instance</Link>
-                    </Button>
-                  </div>
+                  <EmptyState
+                    icon={Smartphone}
+                    title="No Instances"
+                    description="Create your first WhatsApp instance to get started."
+                    actionLabel="Create Instance"
+                    actionHref="/instances"
+                    variant="primary"
+                  />
                 )}
               </CardContent>
             </Card>
           </div>
         </div>
       </div>
+
+      {/* Setup Wizard Modal */}
+      {tenant && (
+        <SetupWizard
+          tenantId={tenant._id}
+          open={wizardOpen}
+          onOpenChange={setWizardOpen}
+          initialStep={tenant.onboardingStep ?? 0}
+        />
+      )}
     </div>
   );
 }

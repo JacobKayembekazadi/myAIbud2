@@ -3,6 +3,7 @@
 import { whatsapp } from "@/lib/whatsapp";
 import { ConvexHttpClient } from "convex/browser";
 import { api } from "@/../convex/_generated/api";
+import { Id } from "@/../convex/_generated/dataModel";
 
 const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
 
@@ -91,5 +92,64 @@ export async function syncChats(instanceId: string, tenantId: string) {
   } catch (error) {
     console.error("Failed to sync chats:", error);
     return { error: error instanceof Error ? error.message : "Failed to sync chats" };
+  }
+}
+
+// Create instance with Convex storage (for onboarding)
+export async function createInstance(tenantId: Id<"tenants">, name: string) {
+  try {
+    // Create instance in WAHA
+    const result = await whatsapp.createInstance(name);
+    if (!result.success || !result.instance) {
+      return { success: false, error: result.error || "Failed to create instance" };
+    }
+
+    // Store in Convex
+    await convex.mutation(api.instances.createInstance, {
+      tenantId,
+      name,
+      instanceId: result.instance.id,
+    });
+
+    return { success: true, instanceId: result.instance.id };
+  } catch (error) {
+    console.error("Failed to create instance:", error);
+    return { success: false, error: error instanceof Error ? error.message : "Failed to create instance" };
+  }
+}
+
+// Get QR code for scanning (for onboarding)
+export async function getQRCode(instanceId: string) {
+  try {
+    // First check if already connected
+    const status = await whatsapp.getInstanceStatus(instanceId);
+    if (status?.status === "connected") {
+      return { success: true, connected: true };
+    }
+
+    // Get QR code
+    const result = await whatsapp.getQRCode(instanceId);
+    if (result.error) {
+      return { success: false, error: result.error };
+    }
+    
+    return { success: true, qrCode: result.base64 };
+  } catch (error) {
+    console.error("Failed to get QR code:", error);
+    return { success: false, error: error instanceof Error ? error.message : "Failed to get QR code" };
+  }
+}
+
+// Check instance connection status (for onboarding)
+export async function checkInstanceStatus(instanceId: string) {
+  try {
+    const result = await whatsapp.getInstanceStatus(instanceId);
+    return {
+      connected: result?.status === "connected",
+      status: result?.status || "disconnected",
+    };
+  } catch (error) {
+    console.error("Failed to check instance status:", error);
+    return { connected: false, status: "disconnected" };
   }
 }
