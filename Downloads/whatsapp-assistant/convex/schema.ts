@@ -18,7 +18,9 @@ export default defineSchema({
     status: v.string(),
     createdAt: v.number(),
     updatedAt: v.number(),
-  }).index("by_instanceId", ["instanceId"]),
+  })
+    .index("by_instanceId", ["instanceId"])
+    .index("by_tenant", ["tenantId"]),
 
   contacts: defineTable({
     tenantId: v.id("tenants"),
@@ -30,7 +32,9 @@ export default defineSchema({
     lastInteraction: v.optional(v.number()),
     createdAt: v.number(),
     updatedAt: v.number(),
-  }).index("by_phone", ["phone", "instanceId"]),
+  })
+    .index("by_phone", ["phone", "instanceId"])
+    .index("by_tenant", ["tenantId"]),
 
   subscriptionUsage: defineTable({
     tenantId: v.id("tenants"),
@@ -40,7 +44,7 @@ export default defineSchema({
     periodEnd: v.number(),
     createdAt: v.number(),
     updatedAt: v.number(),
-  }),
+  }).index("by_tenant", ["tenantId"]),
 
   interactions: defineTable({
     contactId: v.id("contacts"),
@@ -50,7 +54,9 @@ export default defineSchema({
     metadata: v.optional(v.any()),
     cost: v.number(),
     createdAt: v.number(),
-  }),
+  })
+    .index("by_contact", ["contactId"])
+    .index("by_tenant", ["tenantId"]),
 
   campaigns: defineTable({
     tenantId: v.id("tenants"),

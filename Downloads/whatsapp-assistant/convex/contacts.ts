@@ -4,7 +4,7 @@ import { mutation, query } from "./_generated/server";
 export const listContacts = query({
   args: { tenantId: v.id("tenants"), instanceId: v.optional(v.string()) },
   handler: async (ctx, args) => {
-    let q = ctx.db.query("contacts").filter((q) => q.eq(q.field("tenantId"), args.tenantId));
+    let q = ctx.db.query("contacts").withIndex("by_tenant", (q) => q.eq("tenantId", args.tenantId));
     if (args.instanceId) {
       q = q.filter((q) => q.eq(q.field("instanceId"), args.instanceId));
     }

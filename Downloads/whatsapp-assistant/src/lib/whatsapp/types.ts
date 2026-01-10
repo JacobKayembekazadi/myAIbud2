@@ -48,6 +48,13 @@ export interface ParsedWebhook {
   };
 }
 
+export interface ParsedSessionStatus {
+  instanceId: string;
+  event: "session.status";
+  status: "WORKING" | "CONNECTED" | "SCAN_QR_CODE" | "STARTING" | "STOPPED" | "FAILED";
+  mappedStatus: "connected" | "disconnected" | "connecting";
+}
+
 export interface WhatsAppProvider {
   sendText(instanceId: string, phone: string, message: string): Promise<SendMessageResult>;
   getQRCode(instanceId: string): Promise<QRCodeResult>;
@@ -57,5 +64,6 @@ export interface WhatsAppProvider {
   getChats(instanceId: string): Promise<ChatInfo[]>;
   verifyWebhook(body: string, signature: string): boolean;
   parseWebhook(payload: unknown): ParsedWebhook | null;
+  parseSessionStatus(payload: unknown): ParsedSessionStatus | null;
 }
 

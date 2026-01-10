@@ -1,5 +1,7 @@
 # Security Overview - My Aibud
 
+> **Last Updated:** January 10, 2026
+
 ## Security Principles
 
 My Aibud implements a defense-in-depth security approach across all layers of the application, following the five pillars of robust SaaS security. The system prioritizes data protection, access control, and operational security.
@@ -26,9 +28,9 @@ My Aibud implements a defense-in-depth security approach across all layers of th
 
 #### Encryption Standards
 - **In Transit:** All communications use TLS 1.3 (HTTPS enforced)
-- **At Rest:** Database encryption via PostgreSQL's native encryption
-- **Secrets Management:** Environment variables for all sensitive credentials
-- **API Keys:** Encrypted storage with rotation policies
+- **At Rest:** Database encryption via Convex managed infrastructure
+- **Secrets Management:** Environment variables for all sensitive credentials (Vercel)
+- **API Keys:** Stored in Vercel environment variables, never in code
 
 #### Data Classification
 - **Public Data:** Marketing content, help documentation
@@ -92,11 +94,13 @@ The credit system is a critical security boundary that prevents abuse:
 - **Hard Limits:** System blocks operations when credit limits are reached
 - **Audit Trail:** All credit transactions logged with timestamps
 
-### WhatsApp Integration Security
-- **Webhook Verification:** HMAC-SHA256 signature validation
+### WhatsApp Integration Security (WAHA Plus)
+- **Webhook Verification:** HMAC-SHA256 signature validation using `WAHA_WEBHOOK_SECRET`
+- **API Key Authentication:** All WAHA requests require `X-Api-Key` header
 - **Instance Isolation:** Each tenant's WhatsApp instance is sandboxed
 - **Message Encryption:** WhatsApp's end-to-end encryption maintained
-- **Rate Limiting:** Prevents API abuse and ensures fair usage
+- **Session Binding:** Instances are bound to tenantId in Convex database
+- **Rate Limiting:** WAHA Plus handles WhatsApp rate limits internally
 
 ### AI Service Security
 - **API Key Protection:** Google Gemini keys stored as environment variables
@@ -130,13 +134,26 @@ The credit system is a critical security boundary that prevents abuse:
 - **Data Breach Protocol:** Immediate response and notification procedures
 - **Backup Security:** Encrypted backups with access controls
 
+## Multi-Tenant Data Isolation
+
+### Database Query Security
+- **Tenant-Scoped Queries:** All Convex queries use `withIndex("by_tenant", ...)` to filter by tenantId
+- **No Cross-Tenant Access:** Database indexes enforce tenant boundaries at the query level
+- **Instance Binding:** WhatsApp instances are strictly bound to their creating tenant
+- **Credential Separation:** Each tenant's sessions are isolated in WAHA
+
+### Webhook Security
+- **Signature Verification:** All incoming WAHA webhooks verified with HMAC-SHA256
+- **Instance Lookup:** Webhook handler validates instance ownership before processing
+- **Graceful Failure:** Invalid or unverified webhooks are rejected with 401
+
 ## Third-Party Risk Management
 
 ### Vendor Security Assessment
-- **Evolution API:** Regular security reviews and dependency updates
-- **Clerk:** SOC 2 Type II compliant authentication provider
+- **WAHA Plus:** Self-hosted on Hetzner VPS with API key authentication
+- **Clerk:** SOC 2 Type II compliant authentication provider with custom domain support
 - **Google Gemini:** Enterprise-grade AI service with security certifications
-- **Supabase:** SOC 2 compliant database platform
+- **Convex:** SOC 2 compliant serverless database platform
 
 ### Dependency Management
 - **Automated Scanning:** Regular security scans of all dependencies

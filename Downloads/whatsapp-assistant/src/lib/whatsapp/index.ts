@@ -12,6 +12,7 @@ export type {
   InstanceStatus,
   ChatInfo,
   ParsedWebhook,
+  ParsedSessionStatus,
   WhatsAppProvider,
 } from "./types";
 

@@ -17,6 +17,20 @@ export async function POST(request: NextRequest) {
     }
 
     const payload = JSON.parse(body);
+
+    // Check if this is a session status event
+    const sessionStatus = whatsapp.parseSessionStatus(payload);
+    if (sessionStatus) {
+      // Update instance status in Convex
+      await convex.mutation(api.instances.updateInstanceStatus, {
+        instanceId: sessionStatus.instanceId,
+        status: sessionStatus.mappedStatus,
+      });
+      console.log(`Session status updated: ${sessionStatus.instanceId} -> ${sessionStatus.mappedStatus}`);
+      return NextResponse.json({ status: "ok", event: "session.status" });
+    }
+
+    // Handle message events
     const parsed = whatsapp.parseWebhook(payload);
     
     if (!parsed || parsed.data.fromMe) {

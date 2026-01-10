@@ -6,7 +6,7 @@ export const getMessages = query({
   handler: async (ctx, args) => {
     return await ctx.db
       .query("interactions")
-      .filter((q) => q.eq(q.field("contactId"), args.contactId))
+      .withIndex("by_contact", (q) => q.eq("contactId", args.contactId))
       .order("asc")
       .collect();
   },

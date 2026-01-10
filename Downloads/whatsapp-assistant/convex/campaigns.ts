@@ -33,7 +33,7 @@ export const listCampaigns = query({
     handler: async (ctx, args) => {
         return await ctx.db
             .query("campaigns")
-            .filter((q) => q.eq(q.field("tenantId"), args.tenantId))
+            .withIndex("by_tenant", (q) => q.eq("tenantId", args.tenantId))
             .order("desc")
             .collect();
     },

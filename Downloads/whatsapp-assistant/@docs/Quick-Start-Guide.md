@@ -1,6 +1,6 @@
 # Quick Start Guide - My Aibud Development
 
-> **Last Updated:** January 7, 2026  
+> **Last Updated:** January 10, 2026  
 > **Estimated Setup Time:** 30 minutes
 
 ---
@@ -9,7 +9,7 @@
 
 Before you begin, ensure you have:
 
-- [ ] **Node.js 18+** installed
+- [ ] **Node.js 20.x** installed (required for Next.js 15.5.9)
 - [ ] **npm** or **pnpm** package manager
 - [ ] **Git** for version control
 - [ ] **VS Code** (recommended) with extensions:
@@ -267,18 +267,35 @@ Restart the WAHA container.
 - Check WAHA server is running: `curl http://your-server:3000/api/sessions`
 - Verify API key is correct
 - Check browser console for errors
+- **WAHA 2026.x Note:** QR endpoint is `/api/{session}/auth/qr` (returns PNG binary)
 
 ### Instance Shows "Disconnected"
-- Refresh the page (auto-syncs status)
+- Status now auto-polls every 5 seconds
 - Try clicking "Show QR" to restart session
+- Check if phone is connected to internet
+
+### QR Code Expired
+- QR codes expire after ~60 seconds
+- Timer is displayed on the QR modal
+- Click "Refresh QR" or wait for auto-refresh
 
 ### Convex Errors
 - Run `npx convex deploy` to sync schema
 - Check Convex dashboard for logs
+- Verify `auth.config.ts` uses correct Clerk domain
+
+### Convex Auth Errors
+- Ensure `convex/auth.config.ts` has the correct Clerk domain
+- For custom domains, use `https://clerk.yourdomain.com`
+- After changes, run `npx convex deploy`
 
 ### Webhooks Not Working (Local)
 - Webhooks only work when deployed to Vercel
 - Use ngrok for local testing: `ngrok http 3000`
+
+### WAHA Returns 404 for QR
+- Ensure session exists: `GET /api/sessions/{session}`
+- WAHA 2026.x uses `/api/{session}/auth/qr` (not `/api/sessions/...`)
 
 ---
 

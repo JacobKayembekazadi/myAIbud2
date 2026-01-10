@@ -8,6 +8,7 @@ import type {
   InstanceStatus,
   ChatInfo,
   ParsedWebhook,
+  ParsedSessionStatus,
 } from "./types";
 
 const WAHA_API_URL = process.env.WAHA_API_URL || "http://localhost:3000";
@@ -126,7 +127,7 @@ export const wahaProvider: WhatsAppProvider = {
             webhooks: [
               {
                 url: webhookUrl,
-                events: ["message"],
+                events: ["message", "session.status"], // Include session status for real-time updates
               },
             ],
           } : {},
@@ -297,6 +298,39 @@ export const wahaProvider: WhatsAppProvider = {
       };
     } catch (error) {
       console.error("WAHA parseWebhook error:", error);
+      return null;
+    }
+  },
+
+  parseSessionStatus(payload: unknown): ParsedSessionStatus | null {
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const data = payload as any;
+
+      const event = data.event;
+      if (event !== "session.status") {
+        return null;
+      }
+
+      const instanceId = data.session || "";
+      const status = data.payload?.status || data.status || "";
+
+      // Map WAHA status to our status
+      let mappedStatus: "connected" | "disconnected" | "connecting" = "disconnected";
+      if (status === "WORKING" || status === "CONNECTED") {
+        mappedStatus = "connected";
+      } else if (status === "SCAN_QR_CODE" || status === "STARTING") {
+        mappedStatus = "connecting";
+      }
+
+      return {
+        instanceId,
+        event: "session.status",
+        status,
+        mappedStatus,
+      };
+    } catch (error) {
+      console.error("WAHA parseSessionStatus error:", error);
       return null;
     }
   },

@@ -6,7 +6,7 @@ export const listInstances = query({
   handler: async (ctx, args) => {
     return await ctx.db
       .query("instances")
-      .filter((q) => q.eq(q.field("tenantId"), args.tenantId))
+      .withIndex("by_tenant", (q) => q.eq("tenantId", args.tenantId))
       .collect();
   },
 });

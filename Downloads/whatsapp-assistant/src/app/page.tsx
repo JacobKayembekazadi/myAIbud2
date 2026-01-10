@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Separator } from "@/components/ui/separator";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Smartphone,
   Users,
@@ -25,6 +26,84 @@ import {
   Activity
 } from "lucide-react";
 
+function DashboardSkeleton() {
+  return (
+    <div className="min-h-screen bg-gray-950 p-8">
+      <div className="max-w-7xl mx-auto">
+        {/* Header Skeleton */}
+        <div className="mb-8 flex items-center justify-between">
+          <div>
+            <Skeleton className="h-9 w-48 bg-gray-800" />
+            <Skeleton className="h-5 w-80 mt-2 bg-gray-800" />
+          </div>
+          <Skeleton className="h-6 w-32 bg-gray-800" />
+        </div>
+
+        {/* Stats Grid Skeleton */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          {[1, 2, 3, 4].map((i) => (
+            <Card key={i} className="bg-gradient-to-br from-gray-900 to-gray-800 border-gray-700">
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <Skeleton className="h-4 w-32 bg-gray-700" />
+                <Skeleton className="h-9 w-9 rounded-lg bg-gray-700" />
+              </CardHeader>
+              <CardContent>
+                <Skeleton className="h-10 w-16 bg-gray-700" />
+                <Skeleton className="h-5 w-24 mt-2 bg-gray-700" />
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+
+        {/* Main Content Skeleton */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="lg:col-span-2 space-y-6">
+            <Card className="bg-gray-900/50 border-gray-800">
+              <CardHeader>
+                <Skeleton className="h-6 w-32 bg-gray-800" />
+                <Skeleton className="h-4 w-64 mt-1 bg-gray-800" />
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {[1, 2, 3].map((i) => (
+                  <div key={i} className="flex items-center gap-4 p-4 bg-gray-800/50 rounded-lg">
+                    <Skeleton className="h-12 w-12 rounded-xl bg-gray-700" />
+                    <div className="flex-1">
+                      <Skeleton className="h-5 w-32 bg-gray-700" />
+                      <Skeleton className="h-4 w-48 mt-1 bg-gray-700" />
+                    </div>
+                    <Skeleton className="h-8 w-8 bg-gray-700" />
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+          </div>
+
+          <div className="space-y-6">
+            <Card className="bg-gray-900/50 border-gray-800">
+              <CardHeader>
+                <Skeleton className="h-6 w-36 bg-gray-800" />
+                <Skeleton className="h-4 w-48 mt-1 bg-gray-800" />
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {[1, 2, 3, 4, 5].map((i) => (
+                  <div key={i} className="flex items-center gap-3">
+                    <Skeleton className="h-10 w-10 rounded-full bg-gray-700" />
+                    <div className="flex-1">
+                      <Skeleton className="h-4 w-24 bg-gray-700" />
+                      <Skeleton className="h-3 w-32 mt-1 bg-gray-700" />
+                    </div>
+                    <Skeleton className="h-5 w-12 bg-gray-700" />
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function Dashboard() {
   const { userId } = useAuth();
   const tenant = useQuery(api.tenants.getTenant, userId ? { clerkId: userId } : "skip");
@@ -32,6 +111,11 @@ function Dashboard() {
   const contacts = useQuery(api.contacts.listContacts, tenant ? { tenantId: tenant._id } : "skip");
   const usage = useQuery(api.subscriptionUsage.getUsage, tenant ? { tenantId: tenant._id } : "skip");
   const campaigns = useQuery(api.campaigns.listCampaigns, tenant ? { tenantId: tenant._id } : "skip");
+
+  // Show skeleton while loading
+  if (tenant === undefined || instances === undefined || contacts === undefined) {
+    return <DashboardSkeleton />;
+  }
 
   const creditsUsed = usage?.creditsUsed ?? 0;
   const creditsLimit = usage?.creditsLimit ?? 400;

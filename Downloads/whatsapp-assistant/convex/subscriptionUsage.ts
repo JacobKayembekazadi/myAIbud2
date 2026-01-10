@@ -6,7 +6,7 @@ export const getUsage = query({
   handler: async (ctx, args) => {
     return await ctx.db
       .query("subscriptionUsage")
-      .filter((q) => q.eq(q.field("tenantId"), args.tenantId))
+      .withIndex("by_tenant", (q) => q.eq("tenantId", args.tenantId))
       .first();
   },
 });
@@ -16,7 +16,7 @@ export const checkCredits = query({
   handler: async (ctx, args) => {
     const usage = await ctx.db
       .query("subscriptionUsage")
-      .filter((q) => q.eq(q.field("tenantId"), args.tenantId))
+      .withIndex("by_tenant", (q) => q.eq("tenantId", args.tenantId))
       .first();
 
     if (!usage) {
@@ -33,7 +33,7 @@ export const decrementCredits = mutation({
   handler: async (ctx, args) => {
     const usage = await ctx.db
       .query("subscriptionUsage")
-      .filter((q) => q.eq(q.field("tenantId"), args.tenantId))
+      .withIndex("by_tenant", (q) => q.eq("tenantId", args.tenantId))
       .first();
 
     if (!usage) {
@@ -62,7 +62,7 @@ export const initializeUsage = mutation({
   handler: async (ctx, args) => {
     const existing = await ctx.db
       .query("subscriptionUsage")
-      .filter((q) => q.eq(q.field("tenantId"), args.tenantId))
+      .withIndex("by_tenant", (q) => q.eq("tenantId", args.tenantId))
       .first();
 
     if (existing) return existing._id;
