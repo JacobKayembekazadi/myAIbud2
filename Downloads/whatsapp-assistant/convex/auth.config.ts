@@ -1,7 +1,7 @@
 export default {
   providers: [
     {
-      domain: "https://known-lamprey-22.clerk.accounts.dev",
+      domain: "https://clerk.mychatflow.app",
       applicationID: "convex",
     },
   ],
