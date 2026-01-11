@@ -14,9 +14,23 @@ import { Search, Users, Filter, X } from "lucide-react";
 export default function ChatLayout({ children }: { children: React.ReactNode }) {
   const { userId } = useAuth();
   const tenant = useQuery(api.tenants.getTenant, userId ? { clerkId: userId } : "skip");
+  const instances = useQuery(
+    api.instances.listInstances,
+    tenant ? { tenantId: tenant._id } : "skip"
+  );
+  const settings = useQuery(
+    api.settings.getSettings,
+    tenant ? { tenantId: tenant._id } : "skip"
+  );
+
+  // Determine which instance to show contacts for
+  const activeInstanceId = settings?.defaultInstanceId || instances?.[0]?.instanceId;
+
   const contacts = useQuery(
     api.contacts.listContacts,
-    tenant ? { tenantId: tenant._id } : "skip"
+    tenant && activeInstanceId
+      ? { tenantId: tenant._id, instanceId: activeInstanceId }
+      : "skip"
   );
 
   const [searchQuery, setSearchQuery] = useState("");
