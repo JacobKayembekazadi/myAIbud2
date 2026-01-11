@@ -1,7 +1,7 @@
 ﻿import { inngest } from "../client";
 
 export const pollManager = inngest.createFunction(
-  { id: "poll-manager" },
+  { id: "poll.manager" },
   { event: "poll.response" },
   async ({ event }) => {
     // TODO: Implement poll response handling

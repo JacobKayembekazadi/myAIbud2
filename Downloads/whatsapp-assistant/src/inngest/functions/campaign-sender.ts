@@ -7,10 +7,10 @@ const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
 
 export const campaignSender = inngest.createFunction(
     {
-        id: "campaign-sender",
+        id: "campaign.sender",
         retries: 2,
         // Rate limiting to avoid WhatsApp bans (30 messages per minute max)
-        rateLimit: { key: "campaign-sender", limit: 30, period: "1m" }
+        rateLimit: { key: "event.data.campaignId", limit: 30, period: "1m" }
     },
     { event: "campaign.send" },
     async ({ event, step }) => {

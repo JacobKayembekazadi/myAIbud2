@@ -8,7 +8,7 @@ import { whatsapp } from "@/lib/whatsapp";
 const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
 
 export const messageAgent = inngest.createFunction(
-  { id: "message-agent", retries: 3 },
+  { id: "message.agent", retries: 3 },
   { event: "message.upsert" },
   async ({ event, step }) => {
     const { contactId, instanceId, tenantId, phone, content } = event.data;
@@ -97,7 +97,6 @@ ${quickRepliesContext}`;
         system: systemPrompt,
         prompt: `Previous conversation:\n${historyText}\n\nUser: ${content}\n\nRespond appropriately:`,
         temperature: settings?.aiTemperature ?? 0.7,
-        maxTokens: settings?.aiMaxTokens ?? 500,
       });
 
       return text;
