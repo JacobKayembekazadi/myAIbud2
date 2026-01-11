@@ -40,6 +40,8 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { UserPlus, MoreVertical, Shield, Users as UsersIcon, Eye, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
+import TeamOnboardingChecklist from "@/components/onboarding/TeamOnboardingChecklist";
 
 export default function TeamPage() {
   const router = useRouter();
@@ -72,6 +74,27 @@ function TeamPageContent({ organizationId }: { organizationId: any }) {
   const orgWithStats = useQuery(api.organizations.getOrganizationWithStats, { organizationId });
 
   const [inviteDialogOpen, setInviteDialogOpen] = useState(false);
+  const [cancellingInvite, setCancellingInvite] = useState<string | null>(null);
+  const [checklistDismissed, setChecklistDismissed] = useState(false);
+
+  const cancelInvite = useMutation(api.teamMembers.cancelInvite);
+
+  const handleCancelInvite = async (memberId: any, memberEmail: string) => {
+    if (!confirm(`Are you sure you want to cancel the invitation for ${memberEmail}?`)) {
+      return;
+    }
+
+    setCancellingInvite(memberId);
+    try {
+      await cancelInvite({ memberId });
+      toast.success("Invitation cancelled successfully");
+    } catch (error) {
+      console.error("Failed to cancel invite:", error);
+      toast.error(error instanceof Error ? error.message : "Failed to cancel invitation");
+    } finally {
+      setCancellingInvite(null);
+    }
+  };
 
   if (!members || !myMembership || !orgWithStats) {
     return (
@@ -134,6 +157,19 @@ function TeamPageContent({ organizationId }: { organizationId: any }) {
             </div>
           </div>
         </div>
+
+        {/* Onboarding Checklist - Show for new teams (< 7 days old) with less than 3 members */}
+        {!checklistDismissed &&
+          orgWithStats.stats.totalMembers < 3 &&
+          Date.now() - orgWithStats.createdAt < 7 * 24 * 60 * 60 * 1000 && (
+            <div className="mb-6">
+              <TeamOnboardingChecklist
+                organizationId={organizationId}
+                stats={orgWithStats.stats}
+                onDismiss={() => setChecklistDismissed(true)}
+              />
+            </div>
+          )}
 
         {/* Active Members Table */}
         <div className="bg-gray-900 rounded-lg border border-gray-800 overflow-hidden mb-6">
@@ -214,8 +250,10 @@ function TeamPageContent({ organizationId }: { organizationId: any }) {
                           variant="ghost"
                           size="sm"
                           className="text-red-400 hover:text-red-300 hover:bg-red-400/10"
+                          onClick={() => handleCancelInvite(member._id, member.email)}
+                          disabled={cancellingInvite === member._id}
                         >
-                          Cancel Invite
+                          {cancellingInvite === member._id ? "Cancelling..." : "Cancel Invite"}
                         </Button>
                       )}
                     </TableCell>
@@ -272,23 +310,51 @@ function InviteMemberDialog({
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const inviteMember = useMutation(api.teamMembers.inviteMember);
+  const myMembership = useQuery(api.teamMembers.getMyMembership, { organizationId });
+  const organization = useQuery(api.organizations.getOrganization, { organizationId });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
 
     try {
-      await inviteMember({
+      const result = await inviteMember({
         organizationId,
         email,
         role,
       });
+
+      // Trigger Inngest event to send invitation email
+      if (myMembership && organization) {
+        try {
+          await fetch("/api/inngest", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              name: "team.member.invited",
+              data: {
+                invitedEmail: email,
+                invitedByName: myMembership.name || myMembership.email,
+                invitedByEmail: myMembership.email,
+                organizationName: organization.name,
+                role,
+                inviteUrl: result.inviteUrl,
+              },
+            }),
+          });
+        } catch (emailError) {
+          console.warn("Failed to trigger email notification:", emailError);
+          // Don't fail the invitation if email fails
+        }
+      }
+
       onClose();
       setEmail("");
       setRole("agent");
+      toast.success("Invitation sent successfully");
     } catch (error) {
       console.error("Failed to invite member:", error);
-      alert(error instanceof Error ? error.message : "Failed to invite member");
+      toast.error(error instanceof Error ? error.message : "Failed to invite member");
     } finally {
       setIsSubmitting(false);
     }
@@ -364,9 +430,10 @@ function MemberActionsMenu({ member, organizationId }: { member: any; organizati
 
     try {
       await removeMember({ memberId: member._id });
+      toast.success("Member removed successfully");
     } catch (error) {
       console.error("Failed to remove member:", error);
-      alert(error instanceof Error ? error.message : "Failed to remove member");
+      toast.error(error instanceof Error ? error.message : "Failed to remove member");
     }
   };
 
@@ -375,9 +442,10 @@ function MemberActionsMenu({ member, organizationId }: { member: any; organizati
 
     try {
       await suspendMember({ memberId: member._id });
+      toast.success("Member suspended successfully");
     } catch (error) {
       console.error("Failed to suspend member:", error);
-      alert(error instanceof Error ? error.message : "Failed to suspend member");
+      toast.error(error instanceof Error ? error.message : "Failed to suspend member");
     }
   };
 

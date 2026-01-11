@@ -17,15 +17,7 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { User, Bot, Bell, Zap, Trash2, Plus, Loader2, Users } from "lucide-react";
 import { useRouter } from "next/navigation";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
+import TeamUpgradeWizard from "@/components/onboarding/TeamUpgradeWizard";
 
 export function SettingsClient() {
     const router = useRouter();
@@ -40,13 +32,10 @@ export function SettingsClient() {
     const updateSettings = useMutation(api.settings.updateSettings);
     const createQuickReply = useMutation(api.settings.createQuickReply);
     const deleteQuickReply = useMutation(api.settings.deleteQuickReply);
-    const upgradeToTeam = useMutation(api.tenants.upgradeToTeam);
 
     const [newReply, setNewReply] = useState({ label: "", content: "", category: "" });
     const [saving, setSaving] = useState(false);
     const [upgradeDialogOpen, setUpgradeDialogOpen] = useState(false);
-    const [orgName, setOrgName] = useState("");
-    const [upgrading, setUpgrading] = useState(false);
 
     const isSoloAccount = !tenant?.organizationId || tenant?.accountType !== "team";
 
@@ -87,30 +76,6 @@ export function SettingsClient() {
             toast.success("Quick reply deleted");
         } catch (error) {
             toast.error("Failed to delete quick reply");
-        }
-    };
-
-    const handleUpgradeToTeam = async () => {
-        if (!tenant || !orgName.trim()) {
-            toast.error("Organization name is required");
-            return;
-        }
-
-        setUpgrading(true);
-        try {
-            const result = await upgradeToTeam({
-                tenantId: tenant._id,
-                organizationName: orgName,
-            });
-            toast.success("Successfully upgraded to team account!");
-            setUpgradeDialogOpen(false);
-            // Redirect to team page
-            router.push("/team");
-        } catch (error) {
-            console.error("Failed to upgrade:", error);
-            toast.error(error instanceof Error ? error.message : "Failed to upgrade to team");
-        } finally {
-            setUpgrading(false);
         }
     };
 
@@ -465,56 +430,23 @@ export function SettingsClient() {
                             </div>
 
                             <div className="flex justify-center">
-                                <Dialog open={upgradeDialogOpen} onOpenChange={setUpgradeDialogOpen}>
-                                    <DialogTrigger asChild>
-                                        <Button size="lg" className="bg-emerald-600 hover:bg-emerald-700">
-                                            <Users className="w-5 h-5 mr-2" />
-                                            Upgrade to Team Account
-                                        </Button>
-                                    </DialogTrigger>
-                                    <DialogContent className="bg-gray-900 border-gray-800 text-white">
-                                        <DialogHeader>
-                                            <DialogTitle>Upgrade to Team Account</DialogTitle>
-                                            <DialogDescription className="text-gray-400">
-                                                This will convert your solo account into a team organization. All your existing data will be preserved.
-                                            </DialogDescription>
-                                        </DialogHeader>
+                                <Button
+                                    size="lg"
+                                    className="bg-emerald-600 hover:bg-emerald-700"
+                                    onClick={() => setUpgradeDialogOpen(true)}
+                                >
+                                    <Users className="w-5 h-5 mr-2" />
+                                    Upgrade to Team Account
+                                </Button>
 
-                                        <div className="space-y-4 py-4">
-                                            <div className="space-y-2">
-                                                <Label htmlFor="org-name">Organization Name</Label>
-                                                <Input
-                                                    id="org-name"
-                                                    placeholder="My Company"
-                                                    value={orgName}
-                                                    onChange={(e) => setOrgName(e.target.value)}
-                                                    className="bg-gray-800 border-gray-700 text-white"
-                                                />
-                                                <p className="text-xs text-gray-500">
-                                                    Choose a name for your team organization
-                                                </p>
-                                            </div>
-                                        </div>
-
-                                        <DialogFooter>
-                                            <Button
-                                                type="button"
-                                                variant="ghost"
-                                                onClick={() => setUpgradeDialogOpen(false)}
-                                                className="text-gray-400 hover:text-white"
-                                            >
-                                                Cancel
-                                            </Button>
-                                            <Button
-                                                onClick={handleUpgradeToTeam}
-                                                disabled={upgrading || !orgName.trim()}
-                                                className="bg-emerald-600 hover:bg-emerald-700"
-                                            >
-                                                {upgrading ? "Upgrading..." : "Upgrade Now"}
-                                            </Button>
-                                        </DialogFooter>
-                                    </DialogContent>
-                                </Dialog>
+                                {tenant && (
+                                    <TeamUpgradeWizard
+                                        tenantId={tenant._id}
+                                        open={upgradeDialogOpen}
+                                        onOpenChange={setUpgradeDialogOpen}
+                                        onSuccess={() => router.push("/team")}
+                                    />
+                                )}
                             </div>
                         </CardContent>
                     </Card>

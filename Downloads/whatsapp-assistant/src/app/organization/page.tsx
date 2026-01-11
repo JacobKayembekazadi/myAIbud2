@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/select";
 import { Building2, CreditCard, Settings, TrendingUp } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 
 export default function OrganizationPage() {
   const router = useRouter();
@@ -217,9 +218,10 @@ function OrganizationProfileForm({
         name,
       });
       setIsEditing(false);
+      toast.success("Organization updated successfully");
     } catch (error) {
       console.error("Failed to update organization:", error);
-      alert(error instanceof Error ? error.message : "Failed to update organization");
+      toast.error(error instanceof Error ? error.message : "Failed to update organization");
     } finally {
       setIsSaving(false);
     }

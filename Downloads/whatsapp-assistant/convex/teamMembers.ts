@@ -1,5 +1,6 @@
 import { v } from "convex/values";
-import { mutation, query } from "./_generated/server";
+import { mutation, query, action } from "./_generated/server";
+import { api } from "./_generated/api";
 
 /**
  * Invite a team member to an organization
@@ -76,13 +77,19 @@ export const inviteMember = mutation({
       updatedAt: now,
     });
 
-    // TODO: Send email with invite link
-    // In a real implementation, you'd use a service like Resend or SendGrid
+    const inviteUrl = `${process.env.NEXT_PUBLIC_APP_URL}/accept-invite?token=${inviteToken}`;
+
+    // Note: Email sending is handled by the frontend after successful invitation
+    // The frontend will trigger the Inngest "team.member.invited" event
+    // See: src/inngest/functions/send-invite-email.ts
 
     return {
       memberId,
       inviteToken,
-      inviteUrl: `${process.env.NEXT_PUBLIC_APP_URL}/accept-invite?token=${inviteToken}`,
+      inviteUrl,
+      // Return data needed for email sending
+      invitedEmail: args.email,
+      role: args.role,
     };
   },
 });
@@ -127,6 +134,45 @@ export const acceptInvite = mutation({
       success: true,
       organizationId: invitation.organizationId,
     };
+  },
+});
+
+/**
+ * Cancel a pending team invitation
+ * Deletes the invitation record before it's been accepted
+ */
+export const cancelInvite = mutation({
+  args: { memberId: v.id("teamMembers") },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Unauthorized");
+
+    const targetMember = await ctx.db.get(args.memberId);
+    if (!targetMember) throw new Error("Invitation not found");
+
+    // Verify requester is an admin of this organization
+    const requester = await ctx.db
+      .query("teamMembers")
+      .withIndex("by_clerk_org", (q) =>
+        q
+          .eq("clerkId", identity.subject)
+          .eq("organizationId", targetMember.organizationId)
+      )
+      .first();
+
+    if (!requester || requester.role !== "admin") {
+      throw new Error("Only admins can cancel invitations");
+    }
+
+    // Verify the member is still in invited status
+    if (targetMember.status !== "invited") {
+      throw new Error("Cannot cancel invitation that has already been accepted or is no longer pending");
+    }
+
+    // Delete the invitation
+    await ctx.db.delete(args.memberId);
+
+    return { success: true };
   },
 });
 
