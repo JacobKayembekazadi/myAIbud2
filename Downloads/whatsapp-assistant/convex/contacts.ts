@@ -293,10 +293,13 @@ export const listContactsTeamAware = query({
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) throw new Error("Unauthorized");
 
+    // TypeScript narrowing: we know organizationId exists here
+    const organizationId = tenant.organizationId!;
+
     const member = await ctx.db
       .query("teamMembers")
       .withIndex("by_clerk_org", (q) =>
-        q.eq("clerkId", identity.subject).eq("organizationId", tenant.organizationId)
+        q.eq("clerkId", identity.subject).eq("organizationId", organizationId)
       )
       .first();
 
@@ -307,7 +310,7 @@ export const listContactsTeamAware = query({
     // Get all contacts for the organization
     let q = ctx.db
       .query("contacts")
-      .withIndex("by_organization", (q) => q.eq("organizationId", tenant.organizationId));
+      .withIndex("by_organization", (q) => q.eq("organizationId", organizationId));
 
     if (args.instanceId) {
       q = q.filter((q) => q.eq(q.field("instanceId"), args.instanceId));
