@@ -2,24 +2,41 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { UserButton } from "@clerk/nextjs";
-import { Home, MessageSquare, Smartphone, Upload, Bot, ChevronLeft, ChevronRight, Settings, LayoutDashboard, Users } from "lucide-react";
+import { UserButton, useAuth } from "@clerk/nextjs";
+import { Home, MessageSquare, Smartphone, Upload, Bot, ChevronLeft, ChevronRight, Settings, LayoutDashboard, Users, Building2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useSidebar } from "./SidebarContext";
 import { cn } from "@/lib/utils";
+import { useQuery } from "convex/react";
+import { api } from "@/../convex/_generated/api";
 
-const navItems = [
+const baseNavItems = [
     { href: "/", label: "Dashboard", icon: LayoutDashboard },
     { href: "/instances", label: "Instances", icon: Smartphone },
     { href: "/contacts", label: "Contacts", icon: Users },
     { href: "/campaigns", label: "Campaigns", icon: Upload },
     { href: "/chat", label: "Chats", icon: MessageSquare },
-    { href: "/settings", label: "Settings", icon: Settings },
+];
+
+const teamNavItems = [
+    { href: "/team", label: "Team", icon: Users },
+    { href: "/organization", label: "Organization", icon: Building2 },
 ];
 
 export function Sidebar() {
     const pathname = usePathname();
     const { isCollapsed, toggleCollapse } = useSidebar();
+    const { userId } = useAuth();
+    const tenant = useQuery(api.tenants.getTenant, userId ? { clerkId: userId } : "skip");
+
+    const isTeamAccount = tenant?.accountType === "team" && tenant?.organizationId;
+
+    // Build nav items based on account type
+    const navItems = [
+        ...baseNavItems,
+        ...(isTeamAccount ? teamNavItems : []),
+        { href: "/settings", label: "Settings", icon: Settings },
+    ];
 
     return (
         <aside

@@ -26,10 +26,15 @@ export default function ChatLayout({ children }: { children: React.ReactNode }) 
   // Determine which instance to show contacts for
   const activeInstanceId = settings?.defaultInstanceId || instances?.[0]?.instanceId;
 
+  // Check if team account
+  const isTeamAccount = tenant?.accountType === "team" && tenant?.organizationId;
+  const [viewMode, setViewMode] = useState<"my" | "all" | "unassigned">("all");
+
+  // Use team-aware query for team accounts
   const contacts = useQuery(
-    api.contacts.listContacts,
+    isTeamAccount ? api.contacts.listContactsTeamAware : api.contacts.listContacts,
     tenant && activeInstanceId
-      ? { tenantId: tenant._id, instanceId: activeInstanceId }
+      ? { tenantId: tenant._id, instanceId: activeInstanceId, ...(isTeamAccount ? { viewMode } : {}) }
       : "skip"
   );
 

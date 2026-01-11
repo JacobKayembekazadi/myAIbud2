@@ -228,18 +228,18 @@ export const createDemoContact = mutation({
   },
   handler: async (ctx, args) => {
     const now = Date.now();
-    
+
     // Check if demo contact already exists
     const existing = await ctx.db
       .query("contacts")
       .withIndex("by_tenant", (q) => q.eq("tenantId", args.tenantId))
       .filter((q) => q.eq(q.field("isDemo"), true))
       .first();
-    
+
     if (existing) {
       return existing._id;
     }
-    
+
     return await ctx.db.insert("contacts", {
       tenantId: args.tenantId,
       instanceId: args.instanceId,
@@ -252,6 +252,259 @@ export const createDemoContact = mutation({
       createdAt: now,
       updatedAt: now,
     });
+  },
+});
+
+// ===== TEAM WORKSPACE FUNCTIONS =====
+
+/**
+ * List contacts with team-aware filtering
+ * Supports both solo and team modes
+ */
+export const listContactsTeamAware = query({
+  args: {
+    tenantId: v.id("tenants"),
+    instanceId: v.optional(v.string()),
+    viewMode: v.optional(v.union(v.literal("my"), v.literal("all"), v.literal("unassigned"))),
+  },
+  handler: async (ctx, args) => {
+    const tenant = await ctx.db.get(args.tenantId);
+    if (!tenant) throw new Error("Tenant not found");
+
+    // SOLO MODE: Return all contacts (backward compatible)
+    if (!tenant.organizationId || tenant.accountType === "solo") {
+      let q = ctx.db
+        .query("contacts")
+        .withIndex("by_tenant", (q) => q.eq("tenantId", args.tenantId));
+
+      if (args.instanceId) {
+        q = q.filter((q) => q.eq(q.field("instanceId"), args.instanceId));
+      }
+
+      const contacts = await q.collect();
+      return contacts.sort((a, b) => {
+        const aTime = a.lastInteraction || a.createdAt;
+        const bTime = b.lastInteraction || b.createdAt;
+        return bTime - aTime;
+      });
+    }
+
+    // TEAM MODE: Apply role-based filtering
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Unauthorized");
+
+    const member = await ctx.db
+      .query("teamMembers")
+      .withIndex("by_clerk_org", (q) =>
+        q.eq("clerkId", identity.subject).eq("organizationId", tenant.organizationId)
+      )
+      .first();
+
+    if (!member || member.status !== "active") {
+      throw new Error("Unauthorized");
+    }
+
+    // Get all contacts for the organization
+    let q = ctx.db
+      .query("contacts")
+      .withIndex("by_organization", (q) => q.eq("organizationId", tenant.organizationId));
+
+    if (args.instanceId) {
+      q = q.filter((q) => q.eq(q.field("instanceId"), args.instanceId));
+    }
+
+    let contacts = await q.collect();
+
+    // Apply view mode filtering
+    if (args.viewMode === "my" || (member.role === "agent" && !args.viewMode)) {
+      // Agents see only their assigned contacts (unless viewMode=all)
+      contacts = contacts.filter(
+        (c) => c.assignedTo === member._id || !c.assignedTo
+      );
+    } else if (args.viewMode === "unassigned") {
+      // Show only unassigned contacts
+      contacts = contacts.filter((c) => !c.assignedTo);
+    }
+    // viewMode="all" or admin role: show all contacts
+
+    // Sort by recent activity
+    return contacts.sort((a, b) => {
+      const aTime = a.lastInteraction || a.createdAt;
+      const bTime = b.lastInteraction || b.createdAt;
+      return bTime - aTime;
+    });
+  },
+});
+
+/**
+ * Assign a contact to a team member
+ */
+export const assignContact = mutation({
+  args: {
+    contactId: v.id("contacts"),
+    assignedTo: v.id("teamMembers"),
+  },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Unauthorized");
+
+    const contact = await ctx.db.get(args.contactId);
+    if (!contact || !contact.organizationId) {
+      throw new Error("Contact not found or not in a team workspace");
+    }
+
+    // Verify assigner is an admin
+    const assigner = await ctx.db
+      .query("teamMembers")
+      .withIndex("by_clerk_org", (q) =>
+        q.eq("clerkId", identity.subject).eq("organizationId", contact.organizationId)
+      )
+      .first();
+
+    if (!assigner || assigner.role !== "admin") {
+      throw new Error("Only admins can assign contacts");
+    }
+
+    // Verify assignee belongs to same organization
+    const assignee = await ctx.db.get(args.assignedTo);
+    if (!assignee || assignee.organizationId !== contact.organizationId) {
+      throw new Error("Cannot assign to member of different organization");
+    }
+
+    await ctx.db.patch(args.contactId, {
+      assignedTo: args.assignedTo,
+      assignedBy: assigner._id,
+      assignedAt: Date.now(),
+      updatedAt: Date.now(),
+    });
+
+    return { success: true };
+  },
+});
+
+/**
+ * Unassign a contact (make it available in the pool)
+ */
+export const unassignContact = mutation({
+  args: { contactId: v.id("contacts") },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Unauthorized");
+
+    const contact = await ctx.db.get(args.contactId);
+    if (!contact || !contact.organizationId) {
+      throw new Error("Contact not found or not in a team workspace");
+    }
+
+    // Verify user is an admin
+    const member = await ctx.db
+      .query("teamMembers")
+      .withIndex("by_clerk_org", (q) =>
+        q.eq("clerkId", identity.subject).eq("organizationId", contact.organizationId)
+      )
+      .first();
+
+    if (!member || member.role !== "admin") {
+      throw new Error("Only admins can unassign contacts");
+    }
+
+    await ctx.db.patch(args.contactId, {
+      assignedTo: undefined,
+      assignedBy: undefined,
+      assignedAt: undefined,
+      updatedAt: Date.now(),
+    });
+
+    return { success: true };
+  },
+});
+
+/**
+ * Transfer a contact from one agent to another
+ */
+export const transferContact = mutation({
+  args: {
+    contactId: v.id("contacts"),
+    fromAgentId: v.id("teamMembers"),
+    toAgentId: v.id("teamMembers"),
+  },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Unauthorized");
+
+    const contact = await ctx.db.get(args.contactId);
+    if (!contact || !contact.organizationId) {
+      throw new Error("Contact not found or not in a team workspace");
+    }
+
+    // Verify user is an admin
+    const admin = await ctx.db
+      .query("teamMembers")
+      .withIndex("by_clerk_org", (q) =>
+        q.eq("clerkId", identity.subject).eq("organizationId", contact.organizationId)
+      )
+      .first();
+
+    if (!admin || admin.role !== "admin") {
+      throw new Error("Only admins can transfer contacts");
+    }
+
+    // Verify both agents belong to same organization
+    const fromAgent = await ctx.db.get(args.fromAgentId);
+    const toAgent = await ctx.db.get(args.toAgentId);
+
+    if (
+      !fromAgent ||
+      !toAgent ||
+      fromAgent.organizationId !== contact.organizationId ||
+      toAgent.organizationId !== contact.organizationId
+    ) {
+      throw new Error("Invalid agent IDs");
+    }
+
+    await ctx.db.patch(args.contactId, {
+      assignedTo: args.toAgentId,
+      assignedBy: admin._id,
+      assignedAt: Date.now(),
+      updatedAt: Date.now(),
+    });
+
+    return { success: true };
+  },
+});
+
+/**
+ * Get assignment statistics for an organization
+ */
+export const getAssignmentStats = query({
+  args: { organizationId: v.id("organizations") },
+  handler: async (ctx, args) => {
+    const contacts = await ctx.db
+      .query("contacts")
+      .withIndex("by_organization", (q) => q.eq("organizationId", args.organizationId))
+      .collect();
+
+    const members = await ctx.db
+      .query("teamMembers")
+      .withIndex("by_organization", (q) => q.eq("organizationId", args.organizationId))
+      .filter((q) => q.eq(q.field("status"), "active"))
+      .filter((q) => q.eq(q.field("role"), "agent"))
+      .collect();
+
+    const unassigned = contacts.filter((c) => !c.assignedTo).length;
+
+    const byAgent = members.map((member) => ({
+      memberId: member._id,
+      memberName: member.name || member.email,
+      contactCount: contacts.filter((c) => c.assignedTo === member._id).length,
+    }));
+
+    return {
+      total: contacts.length,
+      unassigned,
+      assigned: contacts.length - unassigned,
+      byAgent,
+    };
   },
 });
 

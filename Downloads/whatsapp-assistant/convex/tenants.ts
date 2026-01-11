@@ -128,3 +128,158 @@ export const resetOnboarding = mutation({
     });
   },
 });
+
+/**
+ * Upgrade a solo tenant account to a team organization
+ * Creates an organization and converts all tenant data to belong to it
+ */
+export const upgradeToTeam = mutation({
+  args: {
+    tenantId: v.id("tenants"),
+    organizationName: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Unauthorized");
+
+    const tenant = await ctx.db.get(args.tenantId);
+    if (!tenant) throw new Error("Tenant not found");
+
+    // Verify ownership
+    if (tenant.clerkId !== identity.subject) {
+      throw new Error("Unauthorized");
+    }
+
+    // Check if already upgraded
+    if (tenant.organizationId) {
+      throw new Error("Account has already been upgraded to team");
+    }
+
+    const now = Date.now();
+    const periodDuration = 30 * 24 * 60 * 60 * 1000; // 30 days
+
+    // Determine credit limit based on tier
+    let creditsLimit = 400; // starter
+    if (tenant.tier === "pro") creditsLimit = 2000;
+    if (tenant.tier === "enterprise") creditsLimit = 10000;
+
+    // Create organization
+    const organizationId = await ctx.db.insert("organizations", {
+      name: args.organizationName,
+      type: "team",
+      ownerClerkId: tenant.clerkId,
+      tier: tenant.tier,
+      creditsLimit,
+      creditsUsed: 0,
+      periodStart: now,
+      periodEnd: now + periodDuration,
+      createdAt: now,
+      updatedAt: now,
+    });
+
+    // Create team member record for the owner (admin)
+    await ctx.db.insert("teamMembers", {
+      organizationId,
+      clerkId: tenant.clerkId,
+      email: tenant.email,
+      name: tenant.name,
+      role: "admin",
+      status: "active",
+      joinedAt: now,
+      permissions: {
+        canManageTeam: true,
+        canManageInstances: true,
+        canViewAllContacts: true,
+        canExportData: true,
+        canManageBilling: true,
+      },
+      createdAt: now,
+      updatedAt: now,
+    });
+
+    // Link tenant to organization
+    await ctx.db.patch(args.tenantId, {
+      organizationId,
+      accountType: "team",
+      updatedAt: now,
+    });
+
+    // Migrate all contacts to organization
+    const contacts = await ctx.db
+      .query("contacts")
+      .withIndex("by_tenant", (q) => q.eq("tenantId", args.tenantId))
+      .collect();
+
+    for (const contact of contacts) {
+      await ctx.db.patch(contact._id, {
+        organizationId,
+      });
+    }
+
+    // Migrate all instances to organization
+    const instances = await ctx.db
+      .query("instances")
+      .withIndex("by_tenant", (q) => q.eq("tenantId", args.tenantId))
+      .collect();
+
+    for (const instance of instances) {
+      await ctx.db.patch(instance._id, {
+        organizationId,
+        visibility: "shared", // Default to shared for upgraded accounts
+      });
+    }
+
+    // Migrate all interactions to organization
+    const interactions = await ctx.db
+      .query("interactions")
+      .withIndex("by_tenant", (q) => q.eq("tenantId", args.tenantId))
+      .collect();
+
+    for (const interaction of interactions) {
+      await ctx.db.patch(interaction._id, {
+        organizationId,
+      });
+    }
+
+    // Migrate all campaigns to organization
+    const campaigns = await ctx.db
+      .query("campaigns")
+      .withIndex("by_tenant", (q) => q.eq("tenantId", args.tenantId))
+      .collect();
+
+    for (const campaign of campaigns) {
+      await ctx.db.patch(campaign._id, {
+        organizationId,
+      });
+    }
+
+    // Migrate settings to organization
+    const settings = await ctx.db
+      .query("settings")
+      .withIndex("by_tenant", (q) => q.eq("tenantId", args.tenantId))
+      .first();
+
+    if (settings) {
+      await ctx.db.patch(settings._id, {
+        organizationId,
+      });
+    }
+
+    // Migrate quick replies to organization
+    const quickReplies = await ctx.db
+      .query("quickReplies")
+      .withIndex("by_tenant", (q) => q.eq("tenantId", args.tenantId))
+      .collect();
+
+    for (const reply of quickReplies) {
+      await ctx.db.patch(reply._id, {
+        organizationId,
+      });
+    }
+
+    return {
+      success: true,
+      organizationId,
+    };
+  },
+});

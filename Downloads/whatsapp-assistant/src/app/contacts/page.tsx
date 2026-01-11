@@ -78,10 +78,26 @@ export default function ContactsPage() {
   // Determine which instance to show contacts for
   const activeInstanceId = settings?.defaultInstanceId || instances?.[0]?.instanceId;
 
+  // Check if team account
+  const isTeamAccount = tenant?.accountType === "team" && tenant?.organizationId;
+  const myMembership = useQuery(
+    api.teamMembers.getMyMembership,
+    isTeamAccount && tenant?.organizationId ? { organizationId: tenant.organizationId } : "skip"
+  );
+  const teamMembers = useQuery(
+    api.teamMembers.listMembers,
+    isTeamAccount && tenant?.organizationId
+      ? { organizationId: tenant.organizationId, includeInvited: false }
+      : "skip"
+  );
+
+  const [viewMode, setViewMode] = useState<"my" | "all" | "unassigned">("all");
+
+  // Use team-aware query for team accounts, regular query for solo
   const contacts = useQuery(
-    api.contacts.listContacts,
+    isTeamAccount ? api.contacts.listContactsTeamAware : api.contacts.listContacts,
     tenant && activeInstanceId
-      ? { tenantId: tenant._id, instanceId: activeInstanceId }
+      ? { tenantId: tenant._id, instanceId: activeInstanceId, ...(isTeamAccount ? { viewMode } : {}) }
       : "skip"
   );
 
@@ -89,6 +105,8 @@ export default function ContactsPage() {
   const bulkResume = useMutation(api.contacts.bulkResumeContacts);
   const bulkDelete = useMutation(api.contacts.bulkDeleteContacts);
   const deleteContact = useMutation(api.contacts.deleteContact);
+  const assignContact = useMutation(api.contacts.assignContact);
+  const unassignContact = useMutation(api.contacts.unassignContact);
 
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
@@ -98,6 +116,8 @@ export default function ContactsPage() {
   const [importOpen, setImportOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [contactToDelete, setContactToDelete] = useState<Id<"contacts"> | null>(null);
+
+  const isAdmin = myMembership?.role === "admin";
 
   // Get all unique tags from contacts
   const allTags = useMemo(() => {
@@ -275,6 +295,19 @@ export default function ContactsPage() {
                   ))}
                 </SelectContent>
               </Select>
+              {isTeamAccount && (
+                <Select value={viewMode} onValueChange={(v: any) => setViewMode(v)}>
+                  <SelectTrigger className="w-44 bg-gray-900 border-gray-700 text-white">
+                    <Users className="w-4 h-4 mr-2 text-gray-400" />
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="bg-gray-900 border-gray-700 text-white">
+                    <SelectItem value="all">All Contacts</SelectItem>
+                    <SelectItem value="my">My Contacts</SelectItem>
+                    <SelectItem value="unassigned">Unassigned</SelectItem>
+                  </SelectContent>
+                </Select>
+              )}
             </div>
           </CardContent>
         </Card>
@@ -337,6 +370,7 @@ export default function ContactsPage() {
                 <TableHead className="text-gray-400">Phone</TableHead>
                 <TableHead className="text-gray-400">Status</TableHead>
                 <TableHead className="text-gray-400">Tags</TableHead>
+                {isTeamAccount && <TableHead className="text-gray-400">Assigned To</TableHead>}
                 <TableHead className="text-gray-400">Last Active</TableHead>
                 <TableHead className="text-gray-400 w-24">Actions</TableHead>
               </TableRow>
@@ -344,7 +378,7 @@ export default function ContactsPage() {
             <TableBody>
               {filteredContacts.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center py-12">
+                  <TableCell colSpan={isTeamAccount ? 8 : 7} className="text-center py-12">
                     <Users className="w-12 h-12 text-gray-700 mx-auto mb-3" />
                     <p className="text-gray-500">No contacts found</p>
                     {(searchQuery || statusFilter !== "all" || tagFilter !== "all") && (
@@ -397,6 +431,47 @@ export default function ContactsPage() {
                         )}
                       </div>
                     </TableCell>
+                    {isTeamAccount && (
+                      <TableCell>
+                        {isAdmin ? (
+                          <Select
+                            value={contact.assignedTo || "unassigned"}
+                            onValueChange={async (value) => {
+                              if (value === "unassigned") {
+                                await unassignContact({ contactId: contact._id });
+                              } else {
+                                await assignContact({
+                                  contactId: contact._id,
+                                  assignedTo: value as any,
+                                });
+                              }
+                            }}
+                          >
+                            <SelectTrigger className="h-8 w-[140px] bg-gray-800 border-gray-700 text-white text-xs">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent className="bg-gray-800 border-gray-700 text-white">
+                              <SelectItem value="unassigned" className="text-gray-400">
+                                Unassigned
+                              </SelectItem>
+                              {teamMembers?.map((member) => (
+                                <SelectItem key={member._id} value={member._id}>
+                                  {member.name || member.email}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        ) : contact.assignedTo ? (
+                          <span className="text-sm text-gray-400">
+                            {teamMembers?.find((m) => m._id === contact.assignedTo)?.name ||
+                              teamMembers?.find((m) => m._id === contact.assignedTo)?.email ||
+                              "Assigned"}
+                          </span>
+                        ) : (
+                          <span className="text-sm text-gray-500">Unassigned</span>
+                        )}
+                      </TableCell>
+                    )}
                     <TableCell className="text-gray-500">
                       {formatDate(contact.lastInteraction)}
                     </TableCell>

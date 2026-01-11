@@ -15,9 +15,20 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { User, Bot, Bell, Zap, Trash2, Plus, Loader2 } from "lucide-react";
+import { User, Bot, Bell, Zap, Trash2, Plus, Loader2, Users } from "lucide-react";
+import { useRouter } from "next/navigation";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 
 export function SettingsClient() {
+    const router = useRouter();
     const { userId } = useAuth();
     const { user } = useUser();
     const tenant = useQuery(api.tenants.getTenant, userId ? { clerkId: userId } : "skip");
@@ -29,9 +40,15 @@ export function SettingsClient() {
     const updateSettings = useMutation(api.settings.updateSettings);
     const createQuickReply = useMutation(api.settings.createQuickReply);
     const deleteQuickReply = useMutation(api.settings.deleteQuickReply);
+    const upgradeToTeam = useMutation(api.tenants.upgradeToTeam);
 
     const [newReply, setNewReply] = useState({ label: "", content: "", category: "" });
     const [saving, setSaving] = useState(false);
+    const [upgradeDialogOpen, setUpgradeDialogOpen] = useState(false);
+    const [orgName, setOrgName] = useState("");
+    const [upgrading, setUpgrading] = useState(false);
+
+    const isSoloAccount = !tenant?.organizationId || tenant?.accountType !== "team";
 
     const handleUpdateSettings = async (updates: any) => {
         if (!tenant) return;
@@ -73,6 +90,30 @@ export function SettingsClient() {
         }
     };
 
+    const handleUpgradeToTeam = async () => {
+        if (!tenant || !orgName.trim()) {
+            toast.error("Organization name is required");
+            return;
+        }
+
+        setUpgrading(true);
+        try {
+            const result = await upgradeToTeam({
+                tenantId: tenant._id,
+                organizationName: orgName,
+            });
+            toast.success("Successfully upgraded to team account!");
+            setUpgradeDialogOpen(false);
+            // Redirect to team page
+            router.push("/team");
+        } catch (error) {
+            console.error("Failed to upgrade:", error);
+            toast.error(error instanceof Error ? error.message : "Failed to upgrade to team");
+        } finally {
+            setUpgrading(false);
+        }
+    };
+
     if (!tenant || !settings) {
         return (
             <div className="flex items-center justify-center h-64">
@@ -104,6 +145,12 @@ export function SettingsClient() {
                     <Zap className="w-4 h-4 mr-2" />
                     Quick Replies
                 </TabsTrigger>
+                {isSoloAccount && (
+                    <TabsTrigger value="team" className="data-[state=active]:bg-green-600/20 data-[state=active]:text-green-400">
+                        <Users className="w-4 h-4 mr-2" />
+                        Team
+                    </TabsTrigger>
+                )}
             </TabsList>
 
             {/* Profile Tab */}
@@ -342,6 +389,137 @@ export function SettingsClient() {
                     </CardContent>
                 </Card>
             </TabsContent>
+
+            {/* Team Tab (Solo Users Only) */}
+            {isSoloAccount && (
+                <TabsContent value="team" className="space-y-6">
+                    <Card className="bg-gray-900/50 border-gray-800">
+                        <CardHeader>
+                            <CardTitle className="text-white">Upgrade to Team Account</CardTitle>
+                            <CardDescription>
+                                Collaborate with your team and manage contacts together
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-6">
+                            <div className="bg-emerald-600/10 border border-emerald-600/30 rounded-lg p-6">
+                                <h3 className="text-lg font-semibold text-white mb-4">
+                                    Team Features
+                                </h3>
+                                <ul className="space-y-3 text-gray-300">
+                                    <li className="flex items-start gap-3">
+                                        <div className="w-5 h-5 rounded-full bg-emerald-600/20 flex items-center justify-center shrink-0 mt-0.5">
+                                            <div className="w-2 h-2 rounded-full bg-emerald-400" />
+                                        </div>
+                                        <div>
+                                            <div className="font-medium text-white">Invite Team Members</div>
+                                            <div className="text-sm text-gray-400">
+                                                Add agents, admins, and viewers to your workspace
+                                            </div>
+                                        </div>
+                                    </li>
+                                    <li className="flex items-start gap-3">
+                                        <div className="w-5 h-5 rounded-full bg-emerald-600/20 flex items-center justify-center shrink-0 mt-0.5">
+                                            <div className="w-2 h-2 rounded-full bg-emerald-400" />
+                                        </div>
+                                        <div>
+                                            <div className="font-medium text-white">Contact Assignment</div>
+                                            <div className="text-sm text-gray-400">
+                                                Assign contacts to specific agents for better organization
+                                            </div>
+                                        </div>
+                                    </li>
+                                    <li className="flex items-start gap-3">
+                                        <div className="w-5 h-5 rounded-full bg-emerald-600/20 flex items-center justify-center shrink-0 mt-0.5">
+                                            <div className="w-2 h-2 rounded-full bg-emerald-400" />
+                                        </div>
+                                        <div>
+                                            <div className="font-medium text-white">Shared WhatsApp Instances</div>
+                                            <div className="text-sm text-gray-400">
+                                                Multiple agents can manage the same WhatsApp number
+                                            </div>
+                                        </div>
+                                    </li>
+                                    <li className="flex items-start gap-3">
+                                        <div className="w-5 h-5 rounded-full bg-emerald-600/20 flex items-center justify-center shrink-0 mt-0.5">
+                                            <div className="w-2 h-2 rounded-full bg-emerald-400" />
+                                        </div>
+                                        <div>
+                                            <div className="font-medium text-white">Shared Credit Pool</div>
+                                            <div className="text-sm text-gray-400">
+                                                All team members share the same subscription credits
+                                            </div>
+                                        </div>
+                                    </li>
+                                    <li className="flex items-start gap-3">
+                                        <div className="w-5 h-5 rounded-full bg-emerald-600/20 flex items-center justify-center shrink-0 mt-0.5">
+                                            <div className="w-2 h-2 rounded-full bg-emerald-400" />
+                                        </div>
+                                        <div>
+                                            <div className="font-medium text-white">Role-Based Permissions</div>
+                                            <div className="text-sm text-gray-400">
+                                                Control what each team member can access and modify
+                                            </div>
+                                        </div>
+                                    </li>
+                                </ul>
+                            </div>
+
+                            <div className="flex justify-center">
+                                <Dialog open={upgradeDialogOpen} onOpenChange={setUpgradeDialogOpen}>
+                                    <DialogTrigger asChild>
+                                        <Button size="lg" className="bg-emerald-600 hover:bg-emerald-700">
+                                            <Users className="w-5 h-5 mr-2" />
+                                            Upgrade to Team Account
+                                        </Button>
+                                    </DialogTrigger>
+                                    <DialogContent className="bg-gray-900 border-gray-800 text-white">
+                                        <DialogHeader>
+                                            <DialogTitle>Upgrade to Team Account</DialogTitle>
+                                            <DialogDescription className="text-gray-400">
+                                                This will convert your solo account into a team organization. All your existing data will be preserved.
+                                            </DialogDescription>
+                                        </DialogHeader>
+
+                                        <div className="space-y-4 py-4">
+                                            <div className="space-y-2">
+                                                <Label htmlFor="org-name">Organization Name</Label>
+                                                <Input
+                                                    id="org-name"
+                                                    placeholder="My Company"
+                                                    value={orgName}
+                                                    onChange={(e) => setOrgName(e.target.value)}
+                                                    className="bg-gray-800 border-gray-700 text-white"
+                                                />
+                                                <p className="text-xs text-gray-500">
+                                                    Choose a name for your team organization
+                                                </p>
+                                            </div>
+                                        </div>
+
+                                        <DialogFooter>
+                                            <Button
+                                                type="button"
+                                                variant="ghost"
+                                                onClick={() => setUpgradeDialogOpen(false)}
+                                                className="text-gray-400 hover:text-white"
+                                            >
+                                                Cancel
+                                            </Button>
+                                            <Button
+                                                onClick={handleUpgradeToTeam}
+                                                disabled={upgrading || !orgName.trim()}
+                                                className="bg-emerald-600 hover:bg-emerald-700"
+                                            >
+                                                {upgrading ? "Upgrading..." : "Upgrade Now"}
+                                            </Button>
+                                        </DialogFooter>
+                                    </DialogContent>
+                                </Dialog>
+                            </div>
+                        </CardContent>
+                    </Card>
+                </TabsContent>
+            )}
         </Tabs>
     );
 }
