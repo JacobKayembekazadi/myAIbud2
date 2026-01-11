@@ -69,15 +69,21 @@ export async function syncChats(instanceId: string, tenantId: string) {
     // Fetch chats from WAHA
     const chats = await whatsapp.getChats(instanceId);
 
+    // Only sync chats with activity in the last 30 days
+    const thirtyDaysAgo = Date.now() - (30 * 24 * 60 * 60 * 1000);
+
     let importedCount = 0;
     for (const chat of chats) {
-      // Skip groups for now
+      // Skip groups
       if (chat.id.includes("@g.us")) continue;
+
+      // Skip chats with no recent activity (optional - comment out if you want all chats)
+      if (chat.timestamp && (chat.timestamp * 1000) < thirtyDaysAgo) continue;
 
       // Extract phone number
       const phone = chat.id.replace("@c.us", "");
 
-      // Upsert contact
+      // Upsert contact with actual last message timestamp
       await convex.mutation(api.contacts.upsertContact, {
         tenantId: tenantId as any,
         instanceId: instanceId,

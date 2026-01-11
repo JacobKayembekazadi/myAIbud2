@@ -8,7 +8,14 @@ export const listContacts = query({
     if (args.instanceId) {
       q = q.filter((q) => q.eq(q.field("instanceId"), args.instanceId));
     }
-    return await q.order("desc").collect();
+    const contacts = await q.collect();
+
+    // Sort by lastInteraction (most recent first), then by createdAt
+    return contacts.sort((a, b) => {
+      const aTime = a.lastInteraction || a.createdAt;
+      const bTime = b.lastInteraction || b.createdAt;
+      return bTime - aTime;
+    });
   },
 });
 
