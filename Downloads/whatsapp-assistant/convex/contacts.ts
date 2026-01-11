@@ -356,11 +356,14 @@ export const assignContact = mutation({
       throw new Error("Contact not found or not in a team workspace");
     }
 
+    // TypeScript narrowing: we know organizationId exists here
+    const organizationId = contact.organizationId;
+
     // Verify assigner is an admin
     const assigner = await ctx.db
       .query("teamMembers")
       .withIndex("by_clerk_org", (q) =>
-        q.eq("clerkId", identity.subject).eq("organizationId", contact.organizationId)
+        q.eq("clerkId", identity.subject).eq("organizationId", organizationId)
       )
       .first();
 
@@ -370,7 +373,7 @@ export const assignContact = mutation({
 
     // Verify assignee belongs to same organization
     const assignee = await ctx.db.get(args.assignedTo);
-    if (!assignee || assignee.organizationId !== contact.organizationId) {
+    if (!assignee || assignee.organizationId !== organizationId) {
       throw new Error("Cannot assign to member of different organization");
     }
 
@@ -399,11 +402,14 @@ export const unassignContact = mutation({
       throw new Error("Contact not found or not in a team workspace");
     }
 
+    // TypeScript narrowing: we know organizationId exists here
+    const organizationId = contact.organizationId;
+
     // Verify user is an admin
     const member = await ctx.db
       .query("teamMembers")
       .withIndex("by_clerk_org", (q) =>
-        q.eq("clerkId", identity.subject).eq("organizationId", contact.organizationId)
+        q.eq("clerkId", identity.subject).eq("organizationId", organizationId)
       )
       .first();
 
@@ -440,11 +446,14 @@ export const transferContact = mutation({
       throw new Error("Contact not found or not in a team workspace");
     }
 
+    // TypeScript narrowing: we know organizationId exists here
+    const organizationId = contact.organizationId;
+
     // Verify user is an admin
     const admin = await ctx.db
       .query("teamMembers")
       .withIndex("by_clerk_org", (q) =>
-        q.eq("clerkId", identity.subject).eq("organizationId", contact.organizationId)
+        q.eq("clerkId", identity.subject).eq("organizationId", organizationId)
       )
       .first();
 
@@ -459,8 +468,8 @@ export const transferContact = mutation({
     if (
       !fromAgent ||
       !toAgent ||
-      fromAgent.organizationId !== contact.organizationId ||
-      toAgent.organizationId !== contact.organizationId
+      fromAgent.organizationId !== organizationId ||
+      toAgent.organizationId !== organizationId
     ) {
       throw new Error("Invalid agent IDs");
     }
