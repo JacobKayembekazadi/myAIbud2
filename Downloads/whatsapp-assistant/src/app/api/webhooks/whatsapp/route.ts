@@ -17,6 +17,7 @@ export async function POST(request: NextRequest) {
     }
 
     const payload = JSON.parse(body);
+    console.log("📨 Webhook payload received:", JSON.stringify(payload, null, 2));
 
     // Check if this is a session status event
     const sessionStatus = whatsapp.parseSessionStatus(payload);
@@ -26,7 +27,7 @@ export async function POST(request: NextRequest) {
         instanceId: sessionStatus.instanceId,
         status: sessionStatus.mappedStatus,
       });
-      console.log(`Session status updated: ${sessionStatus.instanceId} -> ${sessionStatus.mappedStatus}`);
+      console.log(`✅ Session status updated: ${sessionStatus.instanceId} -> ${sessionStatus.mappedStatus}`);
       return NextResponse.json({ status: "ok", event: "session.status" });
     }
 
@@ -34,17 +35,26 @@ export async function POST(request: NextRequest) {
     const parsed = whatsapp.parseWebhook(payload);
     
     if (!parsed || parsed.data.fromMe) {
+      console.log("⏭️ Webhook ignored - not a valid message or fromMe:", parsed?.data?.fromMe);
       return NextResponse.json({ status: "ignored" });
     }
+
+    console.log("💬 Parsed webhook:", {
+      instanceId: parsed.instanceId,
+      from: parsed.data.from,
+      content: parsed.data.content?.substring(0, 50),
+    });
 
     const instance = await convex.query(api.instances.getInstance, {
       instanceId: parsed.instanceId,
     });
 
     if (!instance) {
+      console.error("❌ Instance not found:", parsed.instanceId);
       return NextResponse.json({ error: "Instance not found" }, { status: 404 });
     }
 
+    console.log("👤 Upserting contact...");
     const contactId = await convex.mutation(api.contacts.upsertContact, {
       tenantId: instance.tenantId,
       instanceId: parsed.instanceId,
@@ -52,6 +62,7 @@ export async function POST(request: NextRequest) {
       name: parsed.data.pushName,
     });
 
+    console.log("📝 Logging interaction...");
     await convex.mutation(api.interactions.addInteraction, {
       contactId,
       tenantId: instance.tenantId,
@@ -59,21 +70,46 @@ export async function POST(request: NextRequest) {
       content: parsed.data.content,
     });
 
-    await inngest.send({
-      name: "message.upsert",
-      data: {
-        contactId: contactId.toString(),
-        instanceId: parsed.instanceId,
-        tenantId: instance.tenantId.toString(),
-        phone: parsed.data.from,
-        content: parsed.data.content,
-        messageType: parsed.data.messageType,
-      },
-    });
+    console.log("🚀 Triggering Inngest event...");
+
+    // Send to Inngest with error handling
+    try {
+      const eventData = {
+        name: "message.upsert",
+        data: {
+          contactId: contactId.toString(),
+          instanceId: parsed.instanceId,
+          tenantId: instance.tenantId.toString(),
+          phone: parsed.data.from,
+          content: parsed.data.content,
+          messageType: parsed.data.messageType,
+        },
+      };
+
+      console.log("📤 Sending Inngest event:", JSON.stringify(eventData, null, 2));
+      console.log("🔑 Inngest config check:", {
+        eventKey: process.env.INNGEST_EVENT_KEY ? "✅ SET" : "❌ MISSING",
+        appUrl: process.env.NEXT_PUBLIC_APP_URL || "❌ MISSING",
+      });
+      
+      const result = await inngest.send(eventData);
+      
+      console.log("✅ Inngest event sent successfully:", result);
+    } catch (inngestError) {
+      console.error("❌ Inngest send failed:", inngestError);
+      console.error("Inngest error details:", {
+        message: inngestError instanceof Error ? inngestError.message : String(inngestError),
+        stack: inngestError instanceof Error ? inngestError.stack : undefined,
+        eventKey: process.env.INNGEST_EVENT_KEY ? "SET" : "MISSING",
+        appUrl: process.env.NEXT_PUBLIC_APP_URL,
+      });
+      // Don't fail the webhook - we still want to log the message
+      // but log the Inngest error for debugging
+    }
 
     return NextResponse.json({ status: "ok" });
   } catch (error) {
-    console.error("Webhook error:", error);
+    console.error("❌ Webhook error:", error);
     return NextResponse.json({ error: "Internal error" }, { status: 500 });
   }
 }
