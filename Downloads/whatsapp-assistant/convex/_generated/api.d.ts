@@ -12,8 +12,10 @@ import type * as campaigns from "../campaigns.js";
 import type * as contacts from "../contacts.js";
 import type * as instances from "../instances.js";
 import type * as interactions from "../interactions.js";
+import type * as organizations from "../organizations.js";
 import type * as settings from "../settings.js";
 import type * as subscriptionUsage from "../subscriptionUsage.js";
+import type * as teamMembers from "../teamMembers.js";
 import type * as tenants from "../tenants.js";
 
 import type {
@@ -27,8 +29,10 @@ declare const fullApi: ApiFromModules<{
   contacts: typeof contacts;
   instances: typeof instances;
   interactions: typeof interactions;
+  organizations: typeof organizations;
   settings: typeof settings;
   subscriptionUsage: typeof subscriptionUsage;
+  teamMembers: typeof teamMembers;
   tenants: typeof tenants;
 }>;
 
