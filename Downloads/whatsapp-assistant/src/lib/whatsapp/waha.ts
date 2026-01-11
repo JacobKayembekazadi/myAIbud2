@@ -45,11 +45,13 @@ export const wahaProvider: WhatsAppProvider = {
       // Format phone number for WAHA (remove + and add @c.us suffix)
       const chatId = phone.replace(/[^0-9]/g, "") + "@c.us";
 
+      // WAHA Plus 2026.x uses /api/sendText endpoint
       const response = await wahaFetch(
-        `/api/sessions/${instanceId}/messages/send/text`,
+        `/api/sendText`,
         {
           method: "POST",
           body: JSON.stringify({
+            session: instanceId,
             chatId,
             text: message,
           }),
