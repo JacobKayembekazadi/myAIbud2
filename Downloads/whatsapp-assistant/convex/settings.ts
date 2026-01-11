@@ -14,7 +14,7 @@ export const getSettings = query({
         if (!settings) {
             return {
                 autoReplyEnabled: true,
-                aiModel: "gemini-2.0-flash-exp",
+                aiModel: "gemini-2.0-flash",
                 aiTemperature: 0.7,
                 aiMaxTokens: 1000,
                 emailNotifications: true,
