@@ -149,6 +149,60 @@ return { base64: `data:image/png;base64,${base64}` };
 
 ---
 
+### Issue #9: Webhook 401 Errors (Signature Verification)
+**Status:** ⚠️ TEMPORARILY RESOLVED (January 10, 2026)
+
+**Symptoms:**
+- All webhook POST requests returning `401 Unauthorized`
+- Messages not being processed
+- Inngest events not triggering
+
+**Root Cause:**
+- Webhook signature verification failing due to HMAC configuration mismatch
+- WAHA webhook secret may not match Vercel environment variable
+- Or WAHA instance not configured with HMAC when created
+
+**Temporary Solution Applied:**
+- Disabled webhook signature verification in `src/lib/whatsapp/waha.ts`
+- Added detailed logging to webhook route for debugging
+- Webhooks now return `200 OK` and process messages
+
+**Next Steps (TODO):**
+1. Re-enable signature verification
+2. Verify `WAHA_WEBHOOK_SECRET` matches in Vercel and WAHA instance config
+3. Re-create WAHA instances with correct HMAC configuration
+4. Test webhook signature verification works correctly
+
+---
+
+### Issue #10: Inngest Events Not Triggering
+**Status:** ⚠️ IN PROGRESS (January 10, 2026)
+
+**Symptoms:**
+- Webhooks processing successfully (200 OK)
+- Messages logged to Convex
+- But Inngest events not firing
+- AI agent not responding to messages
+
+**Likely Root Cause:**
+- `INNGEST_EVENT_KEY` and/or `INNGEST_SIGNING_KEY` not configured in Vercel
+- Inngest Cloud not set up or app URL not registered
+- Or `inngest.send()` failing silently
+
+**Solution Applied:**
+- Added comprehensive error handling and logging around `inngest.send()`
+- Added environment variable checks in logs
+- Enhanced webhook route with detailed logging
+
+**Next Steps (TODO):**
+1. Set up Inngest Cloud account at https://app.inngest.com
+2. Add app URL: `https://www.mychatflow.app/api/inngest`
+3. Get `INNGEST_EVENT_KEY` and `INNGEST_SIGNING_KEY` from Inngest dashboard
+4. Add keys to Vercel environment variables
+5. Redeploy and test
+
+---
+
 ## ⚠️ Known Limitations
 
 ### Limitation #1: QR Code Expiry

@@ -42,10 +42,13 @@
 | **CSV Import/Export** | ✅ Working | Bulk contact import and export |
 | **Progress Widget** | ✅ Working | Dashboard onboarding progress tracker |
 | **Enhanced Empty States** | ✅ Working | Better CTAs throughout the app |
+| **AI Agent** | ⚠️ Configured | Uses tenant settings (needs Inngest Cloud setup) |
+| **Webhook Processing** | ✅ Working | Receiving messages (signature verification temp disabled) |
 
 ### Pending Features
 | Feature | Status | Priority |
 |---------|--------|----------|
+| Inngest Cloud Setup | 🔴 Critical | Required for AI automation to work |
 | Vision AI (Property Photos) | ⏳ Pending | Medium - Premium feature |
 | Poll-based Qualification | ⏳ Pending | Medium - Lead scoring |
 | Stripe Billing Integration | ⏳ Pending | High - Revenue enablement |
@@ -130,6 +133,8 @@
 3. **Clerk Custom Domain**: Must use `clerk.mychatflow.app` in Convex auth config
 4. **Convex Auth Issuer**: Custom domain, not default Clerk URL
 5. **QR Expiry**: WhatsApp QR codes expire after ~60 seconds
+6. **Inngest Cloud Required**: AI agent automation requires Inngest Cloud setup with `INNGEST_EVENT_KEY` and `INNGEST_SIGNING_KEY`
+7. **Webhook Signature**: Currently disabled for debugging (temporary - needs HMAC re-configuration)
 
 ---
 
