@@ -66,13 +66,23 @@ import { ExportContactsButton } from "@/components/contacts/ExportContactsButton
 export default function ContactsPage() {
   const { userId } = useAuth();
   const tenant = useQuery(api.tenants.getTenant, userId ? { clerkId: userId } : "skip");
-  const contacts = useQuery(
-    api.contacts.listContacts,
-    tenant ? { tenantId: tenant._id } : "skip"
-  );
   const instances = useQuery(
     api.instances.listInstances,
     tenant ? { tenantId: tenant._id } : "skip"
+  );
+  const settings = useQuery(
+    api.settings.getSettings,
+    tenant ? { tenantId: tenant._id } : "skip"
+  );
+
+  // Determine which instance to show contacts for
+  const activeInstanceId = settings?.defaultInstanceId || instances?.[0]?.instanceId;
+
+  const contacts = useQuery(
+    api.contacts.listContacts,
+    tenant && activeInstanceId
+      ? { tenantId: tenant._id, instanceId: activeInstanceId }
+      : "skip"
   );
 
   const bulkPause = useMutation(api.contacts.bulkPauseContacts);
@@ -183,7 +193,7 @@ export default function ContactsPage() {
     }
   };
 
-  if (tenant === undefined || contacts === undefined) {
+  if (tenant === undefined || contacts === undefined || instances === undefined) {
     return (
       <div className="min-h-screen bg-gray-950 p-8">
         <div className="max-w-7xl mx-auto">
