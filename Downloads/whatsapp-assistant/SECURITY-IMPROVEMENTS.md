@@ -68,20 +68,24 @@ This document describes the critical security improvements implemented to make t
 
 ### For Full Production Deployment:
 
+**📖 See [SETUP-GUIDE.md](./SETUP-GUIDE.md) for detailed step-by-step instructions with screenshots!**
+
+Quick summary:
+
 1. **Upstash Redis (Recommended for rate limiting):**
-   ```bash
-   # Create free account at https://upstash.com
-   # Add to Vercel environment variables:
-   UPSTASH_REDIS_REST_URL=https://your-redis.upstash.io
-   UPSTASH_REDIS_REST_TOKEN=your-redis-token
-   ```
+   - Create free account at https://console.upstash.com/
+   - Create Redis database
+   - Copy credentials and add to Vercel:
+     - `UPSTASH_REDIS_REST_URL`
+     - `UPSTASH_REDIS_REST_TOKEN`
+   - **Time:** 5 minutes
 
 2. **Sentry (Highly Recommended for error monitoring):**
-   ```bash
-   # Create project at https://sentry.io
-   # Add to Vercel environment variables:
-   NEXT_PUBLIC_SENTRY_DSN=https://your-dsn@sentry.io/project-id
-   ```
+   - Create free account at https://sentry.io/signup/
+   - Create Next.js project
+   - Copy DSN and add to Vercel:
+     - `NEXT_PUBLIC_SENTRY_DSN`
+   - **Time:** 10 minutes
 
 3. **Verify WAHA Webhook Secret is set:**
    ```bash
