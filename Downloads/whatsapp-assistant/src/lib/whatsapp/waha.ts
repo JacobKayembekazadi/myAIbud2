@@ -252,16 +252,20 @@ export const wahaProvider: WhatsAppProvider = {
   },
 
   verifyWebhook(body: string, signature: string): boolean {
-    // TEMPORARY: Skip verification while debugging webhook 401 errors
-    // TODO: Re-enable once HMAC is properly configured on WAHA instances
-    console.log("Webhook received, signature header:", signature ? "present" : "missing");
-    return true;
-
-    /* DISABLED FOR DEBUGGING
     if (!WAHA_WEBHOOK_SECRET) {
-      // If no secret configured, skip verification in development
-      console.warn("WAHA_WEBHOOK_SECRET not set, skipping verification");
-      return true;
+      // If no secret configured, skip verification in development only
+      if (process.env.NODE_ENV === "development") {
+        console.warn("[Security] WAHA_WEBHOOK_SECRET not set, skipping verification in development");
+        return true;
+      }
+      // In production, reject webhooks without HMAC configuration
+      console.error("[Security] WAHA_WEBHOOK_SECRET not configured - rejecting webhook");
+      return false;
+    }
+
+    if (!signature) {
+      console.error("[Security] Webhook signature missing - rejecting webhook");
+      return false;
     }
 
     try {
@@ -272,15 +276,21 @@ export const wahaProvider: WhatsAppProvider = {
 
       // Support both formats: raw hex and "sha256=hex"
       const providedSignature = signature.replace("sha256=", "");
-      
-      return crypto.timingSafeEqual(
+
+      const isValid = crypto.timingSafeEqual(
         Buffer.from(expectedSignature),
         Buffer.from(providedSignature)
       );
-    } catch {
+
+      if (!isValid) {
+        console.error("[Security] Webhook signature verification failed");
+      }
+
+      return isValid;
+    } catch (error) {
+      console.error("[Security] Webhook signature verification error:", error);
       return false;
     }
-    */
   },
 
   parseWebhook(payload: unknown): ParsedWebhook | null {

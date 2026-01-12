@@ -3,12 +3,32 @@ import { ConvexHttpClient } from "convex/browser";
 import { api } from "@/../convex/_generated/api";
 import { inngest } from "@/inngest/client";
 import { whatsapp } from "@/lib/whatsapp";
+import { webhookRateLimiter, getRateLimitIdentifier } from "@/lib/ratelimit";
 
 const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
 
 export async function POST(request: NextRequest) {
   try {
-    const signature = request.headers.get("x-webhook-signature") || 
+    // Apply rate limiting
+    const identifier = getRateLimitIdentifier(request);
+    const { success, limit, remaining, reset } = await webhookRateLimiter.limit(identifier);
+
+    if (!success) {
+      console.warn(`[Security] Rate limit exceeded for ${identifier}`);
+      return NextResponse.json(
+        { error: "Too many requests" },
+        {
+          status: 429,
+          headers: {
+            "X-RateLimit-Limit": limit.toString(),
+            "X-RateLimit-Remaining": remaining.toString(),
+            "X-RateLimit-Reset": new Date(reset).toISOString(),
+          },
+        }
+      );
+    }
+
+    const signature = request.headers.get("x-webhook-signature") ||
                      request.headers.get("x-hub-signature-256") || "";
     const body = await request.text();
 
