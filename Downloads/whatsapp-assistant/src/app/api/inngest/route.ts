@@ -14,8 +14,9 @@ const baseHandlers = serve({
 
 // Wrap handlers with rate limiting middleware
 async function withRateLimit(
-  handler: (req: NextRequest) => Promise<Response>,
-  request: NextRequest
+  handler: (...args: any[]) => Promise<Response>,
+  request: NextRequest,
+  context?: any
 ): Promise<Response> {
   // Apply rate limiting
   const identifier = getRateLimitIdentifier(request);
@@ -36,10 +37,10 @@ async function withRateLimit(
     );
   }
 
-  return handler(request);
+  return handler(request, context);
 }
 
 // Export rate-limited handlers
-export const GET = (req: NextRequest) => withRateLimit(baseHandlers.GET, req);
-export const POST = (req: NextRequest) => withRateLimit(baseHandlers.POST, req);
-export const PUT = (req: NextRequest) => withRateLimit(baseHandlers.PUT, req);
+export const GET = (req: NextRequest, ctx: any) => withRateLimit(baseHandlers.GET, req, ctx);
+export const POST = (req: NextRequest, ctx: any) => withRateLimit(baseHandlers.POST, req, ctx);
+export const PUT = (req: NextRequest, ctx: any) => withRateLimit(baseHandlers.PUT, req, ctx);
