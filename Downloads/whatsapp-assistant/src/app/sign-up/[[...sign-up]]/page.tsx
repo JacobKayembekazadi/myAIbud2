@@ -1,37 +1,40 @@
 import { SignUp } from "@clerk/nextjs";
-import { Bot, CheckCircle2, Zap, MessageSquare, ShieldCheck } from "lucide-react";
+import Link from "next/link";
+import { Bot, CheckCircle2, Zap, MessageSquare, ArrowLeft } from "lucide-react";
 
 export default function SignUpPage() {
     return (
         <div className="flex min-h-screen bg-[#02040a] text-white">
-            {/* Left Side: Branding & Features (Visible on md and up) */}
+            {/* Left Side: Branding & Features (Visible on lg and up) */}
             <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden bg-gradient-to-br from-gray-900 via-gray-950 to-black p-12 flex-col justify-between border-r border-gray-800/40">
                 {/* Background Glows */}
                 <div className="absolute -top-24 -left-24 w-96 h-96 bg-green-500/10 rounded-full blur-[120px]" />
                 <div className="absolute -bottom-24 -right-24 w-96 h-96 bg-emerald-500/10 rounded-full blur-[120px]" />
 
                 {/* Logo Section */}
-                <div className="relative z-10 flex items-center gap-3">
-                    <div className="w-12 h-12 bg-gradient-to-tr from-green-500 to-emerald-400 rounded-xl flex items-center justify-center shadow-[0_0_20px_rgba(34,197,94,0.3)]">
-                        <Bot className="w-7 h-7 text-white" />
-                    </div>
-                    <div>
-                        <h1 className="text-2xl font-bold tracking-tight">My Aibud</h1>
-                        <p className="text-xs text-green-400 font-bold uppercase tracking-widest leading-none mt-1">AI WhatsApp OS</p>
-                    </div>
+                <div className="relative z-10">
+                    <Link href="/" className="flex items-center gap-3 group">
+                        <div className="w-12 h-12 bg-gradient-to-tr from-green-500 to-emerald-400 rounded-xl flex items-center justify-center shadow-[0_0_20px_rgba(34,197,94,0.3)]">
+                            <Bot className="w-7 h-7 text-white" />
+                        </div>
+                        <div>
+                            <h1 className="text-2xl font-bold tracking-tight">MyChatFlow</h1>
+                            <p className="text-xs text-green-400 font-bold uppercase tracking-widest leading-none mt-1">AI-Powered WhatsApp Automation</p>
+                        </div>
+                    </Link>
                 </div>
 
                 {/* Content Section */}
                 <div className="relative z-10 space-y-8 max-w-md">
                     <h2 className="text-4xl font-extrabold leading-tight">
-                        Start your journey to <span className="text-transparent bg-clip-text bg-gradient-to-r from-green-400 to-emerald-500">Effortless Growth</span>
+                        Start closing more deals with <span className="text-transparent bg-clip-text bg-gradient-to-r from-green-400 to-emerald-500">AI Automation</span>
                     </h2>
 
                     <div className="space-y-4">
                         {[
-                            { icon: CheckCircle2, label: "Instant Setup", desc: "Scan your QR code and get your AI assistant running in under 2 minutes." },
-                            { icon: Zap, label: "Automated Lead Gen", desc: "Let the AI qualify leads and book appointments while you sleep." },
-                            { icon: MessageSquare, label: "Seamless Scaling", desc: "Manage multiple WhatsApp accounts from a single unified dashboard." }
+                            { icon: CheckCircle2, label: "Free 14-Day Trial", desc: "No credit card required. Try all features free for two weeks." },
+                            { icon: Zap, label: "Setup in 60 Seconds", desc: "Scan a QR code and your AI assistant is ready to engage leads." },
+                            { icon: MessageSquare, label: "Unlimited Potential", desc: "Manage multiple WhatsApp accounts from a single unified dashboard." }
                         ].map((item, i) => (
                             <div key={i} className="flex gap-4 p-4 rounded-2xl bg-white/5 border border-white/5 hover:bg-white/10 transition-colors">
                                 <div className="mt-1 flex-shrink-0">
@@ -46,20 +49,42 @@ export default function SignUpPage() {
                     </div>
                 </div>
 
-                {/* Footer Badges */}
-                <div className="relative z-10 flex items-center gap-6 opacity-50 grayscale hover:grayscale-0 transition-all duration-500">
-                    <span className="text-xs font-bold tracking-widest uppercase">Trusted by 500+ Businesses</span>
+                {/* Footer Stats */}
+                <div className="relative z-10">
+                    <div className="flex items-center gap-8">
+                        <div>
+                            <p className="text-2xl font-bold text-white">24/7</p>
+                            <p className="text-xs text-gray-500">Lead Response</p>
+                        </div>
+                        <div className="w-px h-10 bg-gray-800" />
+                        <div>
+                            <p className="text-2xl font-bold text-white">&lt;5s</p>
+                            <p className="text-xs text-gray-500">Response Time</p>
+                        </div>
+                        <div className="w-px h-10 bg-gray-800" />
+                        <div>
+                            <p className="text-2xl font-bold text-white">3x</p>
+                            <p className="text-xs text-gray-500">More Conversions</p>
+                        </div>
+                    </div>
                 </div>
             </div>
 
             {/* Right Side: Auth Component */}
             <div className="w-full lg:w-1/2 flex flex-col justify-center items-center p-6 lg:p-12 relative overflow-y-auto custom-scrollbar">
+                {/* Back to Home Link */}
+                <Link href="/" className="absolute top-6 left-6 flex items-center gap-2 text-gray-400 hover:text-white transition-colors text-sm">
+                    <ArrowLeft className="w-4 h-4" />
+                    Back to home
+                </Link>
+
                 {/* Mobile Logo (Visible only on mobile) */}
-                <div className="lg:hidden mb-8 flex flex-col items-center gap-2">
+                <div className="lg:hidden mb-8 flex flex-col items-center gap-2 mt-8">
                     <div className="w-16 h-16 bg-gradient-to-tr from-green-500 to-emerald-400 rounded-2xl flex items-center justify-center shadow-lg">
                         <Bot className="w-10 h-10 text-white" />
                     </div>
-                    <h1 className="text-2xl font-bold">My Aibud</h1>
+                    <h1 className="text-2xl font-bold">MyChatFlow</h1>
+                    <p className="text-xs text-gray-400">AI-Powered WhatsApp Automation</p>
                 </div>
 
                 <div className="w-full max-w-md animate-in fade-in slide-in-from-bottom-4 duration-700 py-8">
@@ -84,6 +109,16 @@ export default function SignUpPage() {
                             otpCodeFieldInput: "bg-gray-900 border-gray-800 text-white",
                         }
                     }} />
+                </div>
+
+                {/* Bottom Links */}
+                <div className="mt-4 text-center">
+                    <p className="text-xs text-gray-500">
+                        By creating an account, you agree to our{" "}
+                        <Link href="/terms" className="hover:text-gray-300 underline">Terms of Service</Link>
+                        {" "}and{" "}
+                        <Link href="/privacy" className="hover:text-gray-300 underline">Privacy Policy</Link>
+                    </p>
                 </div>
             </div>
         </div>

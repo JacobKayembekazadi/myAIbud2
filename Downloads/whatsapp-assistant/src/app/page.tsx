@@ -623,94 +623,539 @@ function Dashboard() {
   );
 }
 
-function LandingPage() {
+// Navigation Component
+function Navigation() {
   return (
-    <div className="min-h-screen bg-[#02040a] relative overflow-hidden flex items-center justify-center py-20">
-      {/* Background Glows */}
+    <nav className="fixed top-0 left-0 right-0 z-50 bg-[#02040a]/80 backdrop-blur-xl border-b border-gray-800/50">
+      <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
+        <Link href="/" className="flex items-center gap-3">
+          <div className="w-10 h-10 bg-gradient-to-tr from-emerald-500 to-green-400 rounded-xl flex items-center justify-center">
+            <Bot className="w-6 h-6 text-white" />
+          </div>
+          <span className="text-xl font-bold text-white">MyChatFlow</span>
+        </Link>
+
+        <div className="hidden md:flex items-center gap-8">
+          <a href="#features" className="text-gray-400 hover:text-white transition-colors text-sm font-medium">Features</a>
+          <a href="#how-it-works" className="text-gray-400 hover:text-white transition-colors text-sm font-medium">How It Works</a>
+          <a href="#pricing" className="text-gray-400 hover:text-white transition-colors text-sm font-medium">Pricing</a>
+          <a href="#faq" className="text-gray-400 hover:text-white transition-colors text-sm font-medium">FAQ</a>
+        </div>
+
+        <div className="flex items-center gap-3">
+          <Button asChild variant="ghost" className="text-gray-400 hover:text-white">
+            <Link href="/sign-in">Sign In</Link>
+          </Button>
+          <Button asChild className="bg-emerald-600 hover:bg-emerald-500 text-white">
+            <Link href="/sign-up">Start Free</Link>
+          </Button>
+        </div>
+      </div>
+    </nav>
+  );
+}
+
+// Hero Section
+function HeroSection() {
+  return (
+    <section className="relative pt-32 pb-20 px-6">
       <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-emerald-500/10 blur-[120px] rounded-full" />
       <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-blue-500/10 blur-[120px] rounded-full" />
 
-      <div className="relative z-10 text-center max-w-4xl mx-auto px-6">
-        {/* Badge */}
-        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-bold tracking-widest uppercase mb-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-          <Zap className="w-3 h-3" />
-          Next-Gen Automation
+      <div className="relative z-10 text-center max-w-4xl mx-auto">
+        <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-bold tracking-widest uppercase mb-8">
+          <Sparkles className="w-4 h-4" />
+          Built for Real Estate Professionals
         </div>
 
-        {/* Hero Section */}
-        <div className="mb-12">
-          <div className="w-20 h-20 mx-auto mb-8 bg-gradient-to-tr from-emerald-500 to-green-400 rounded-2xl flex items-center justify-center shadow-[0_0_30px_rgba(16,185,129,0.3)] animate-pulse">
-            <Bot className="w-10 h-10 text-white" />
-          </div>
+        <h1 className="text-5xl md:text-7xl font-black tracking-tighter text-white mb-6">
+          Close More Deals <br />
+          <span className="bg-gradient-to-r from-emerald-400 via-green-400 to-teal-400 bg-clip-text text-transparent">
+            While You Sleep
+          </span>
+        </h1>
 
-          <h1 className="text-6xl md:text-7xl font-black tracking-tighter text-white mb-6">
-            Everything flows with <br />
-            <span className="bg-gradient-to-r from-emerald-400 via-green-400 to-teal-400 bg-clip-text text-transparent">
-              MyChatFlow
-            </span>
-          </h1>
+        <p className="text-xl text-gray-400 max-w-2xl mx-auto leading-relaxed mb-10">
+          Stop losing leads to slow response times. MyChatFlow uses AI to instantly engage your WhatsApp contacts, qualify leads, and book appointments—while you focus on closing.
+        </p>
 
-          <p className="text-xl text-gray-400 max-w-2xl mx-auto leading-relaxed">
-            Automate your WhatsApp conversations with premium AI. Scale your Business, engage your leads, and save thousands of hours with the industry standard.
-          </p>
-        </div>
-
-        {/* Features Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-12">
-          {[
-            { icon: Smartphone, label: "Smart Connect", desc: "One-click WhatsApp linking", color: "emerald" },
-            { icon: MessageSquare, label: "AI Conversations", desc: "Gemini 2.0 Powered engine", color: "blue" },
-            { icon: Zap, label: "Zero Latency", desc: "Instant automated responses", color: "amber" }
-          ].map((feature, i) => (
-            <Card key={i} className="bg-gray-900/40 border-gray-800/50 backdrop-blur-md hover:border-emerald-500/30 transition-all group overflow-hidden">
-              <CardContent className="pt-6">
-                <div className={cn(
-                  "w-12 h-12 rounded-xl flex items-center justify-center mb-4 transition-transform group-hover:scale-110",
-                  feature.color === 'emerald' ? "bg-emerald-500/10 text-emerald-500" :
-                    feature.color === 'blue' ? "bg-blue-500/10 text-blue-500" :
-                      "bg-amber-500/10 text-amber-500"
-                )}>
-                  <feature.icon className="w-6 h-6" />
-                </div>
-                <h3 className="text-white font-bold mb-1">{feature.label}</h3>
-                <p className="text-xs text-gray-500">{feature.desc}</p>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-
-        {/* CTA Section */}
-        <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+        <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-12">
           <Button asChild size="lg" className="h-14 px-10 bg-gradient-to-r from-emerald-600 to-green-500 hover:from-emerald-500 hover:to-green-400 text-white font-bold text-lg rounded-xl shadow-[0_0_20px_rgba(16,185,129,0.3)] border-0 transition-all hover:scale-105 active:scale-95 group">
-            <Link href="/sign-in" className="flex items-center gap-2">
-              Launch Platform
+            <Link href="/sign-up" className="flex items-center gap-2">
+              Start Free Trial
               <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
             </Link>
           </Button>
 
           <Button asChild size="lg" variant="ghost" className="h-14 px-10 text-gray-400 hover:text-white hover:bg-white/5 font-semibold text-lg rounded-xl transition-all border border-gray-800/50">
-            <Link href="/sign-up">Create Account</Link>
+            <a href="#how-it-works" className="flex items-center gap-2">
+              <Play className="w-5 h-5" />
+              See How It Works
+            </a>
           </Button>
         </div>
 
-        {/* Trust & Badges */}
-        <div className="mt-16 pt-8 border-t border-gray-800/30">
-          <div className="flex flex-wrap justify-center gap-8 opacity-40 grayscale hover:grayscale-0 transition-all duration-500">
-            <div className="flex items-center gap-2 text-white font-bold tracking-widest text-[10px] uppercase">
-              <Bot className="w-4 h-4" />
-              Gemini 2.0 Exp
+        <p className="text-sm text-gray-500">No credit card required. Free 14-day trial.</p>
+      </div>
+    </section>
+  );
+}
+
+// Features Section
+function FeaturesSection() {
+  const features = [
+    {
+      icon: Smartphone,
+      label: "Connect in 60 Seconds",
+      desc: "Scan a QR code and your AI assistant is live. No technical setup, no API keys, no headaches.",
+      color: "emerald"
+    },
+    {
+      icon: Bot,
+      label: "Human-Like AI Responses",
+      desc: "Powered by advanced AI trained on real estate conversations. Your leads won't know it's automated.",
+      color: "blue"
+    },
+    {
+      icon: Clock,
+      label: "24/7 Lead Engagement",
+      desc: "Never miss another inquiry—even at 3 AM. Instant responses keep leads warm until you're ready.",
+      color: "amber"
+    },
+    {
+      icon: Users,
+      label: "Team Collaboration",
+      desc: "Assign leads to agents, track performance, and manage your entire team from one dashboard.",
+      color: "purple"
+    },
+    {
+      icon: Send,
+      label: "Bulk Campaigns",
+      desc: "Send personalized messages to hundreds of contacts with smart rate limiting to protect your number.",
+      color: "pink"
+    },
+    {
+      icon: TrendingUp,
+      label: "Analytics & Insights",
+      desc: "Track response rates, identify hot leads, and measure ROI with detailed reporting.",
+      color: "cyan"
+    },
+  ];
+
+  return (
+    <section id="features" className="py-20 px-6">
+      <div className="max-w-6xl mx-auto">
+        <div className="text-center mb-16">
+          <h2 className="text-4xl font-bold text-white mb-4">Everything You Need to Scale</h2>
+          <p className="text-gray-400 max-w-2xl mx-auto">
+            From instant AI responses to team management, MyChatFlow gives real estate professionals the tools to convert more leads.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {features.map((feature, i) => (
+            <Card key={i} className="bg-gray-900/40 border-gray-800/50 hover:border-emerald-500/30 transition-all group">
+              <CardContent className="p-6">
+                <div className={cn(
+                  "w-12 h-12 rounded-xl flex items-center justify-center mb-4 transition-transform group-hover:scale-110",
+                  feature.color === 'emerald' ? "bg-emerald-500/10 text-emerald-500" :
+                  feature.color === 'blue' ? "bg-blue-500/10 text-blue-500" :
+                  feature.color === 'amber' ? "bg-amber-500/10 text-amber-500" :
+                  feature.color === 'purple' ? "bg-purple-500/10 text-purple-500" :
+                  feature.color === 'pink' ? "bg-pink-500/10 text-pink-500" :
+                  "bg-cyan-500/10 text-cyan-500"
+                )}>
+                  <feature.icon className="w-6 h-6" />
+                </div>
+                <h3 className="text-white font-bold mb-2">{feature.label}</h3>
+                <p className="text-sm text-gray-400">{feature.desc}</p>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+// How It Works Section
+function HowItWorksSection() {
+  const steps = [
+    {
+      step: "01",
+      title: "Connect Your WhatsApp",
+      description: "Scan a QR code with your phone—just like WhatsApp Web. Your account is connected in under 60 seconds.",
+      icon: Smartphone,
+    },
+    {
+      step: "02",
+      title: "Customize Your AI",
+      description: "Set your business context, response style, and quick replies. The AI learns how you want to communicate.",
+      icon: Bot,
+    },
+    {
+      step: "03",
+      title: "Watch Leads Convert",
+      description: "Your AI engages leads instantly, answers questions, and qualifies prospects while you focus on closing deals.",
+      icon: TrendingUp,
+    },
+  ];
+
+  return (
+    <section id="how-it-works" className="py-20 px-6 bg-gray-900/30">
+      <div className="max-w-5xl mx-auto">
+        <div className="text-center mb-16">
+          <h2 className="text-4xl font-bold text-white mb-4">Up and Running in Minutes</h2>
+          <p className="text-gray-400 max-w-2xl mx-auto">
+            No technical skills required. If you can use WhatsApp, you can use MyChatFlow.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          {steps.map((item, i) => (
+            <div key={i} className="relative">
+              {i < steps.length - 1 && (
+                <div className="hidden md:block absolute top-12 left-[60%] w-[80%] h-[2px] bg-gradient-to-r from-emerald-500/50 to-transparent" />
+              )}
+              <div className="text-center">
+                <div className="w-24 h-24 mx-auto mb-6 bg-gradient-to-br from-emerald-500/20 to-green-500/10 rounded-2xl flex items-center justify-center border border-emerald-500/20">
+                  <item.icon className="w-10 h-10 text-emerald-400" />
+                </div>
+                <div className="text-emerald-400 font-bold text-sm mb-2">STEP {item.step}</div>
+                <h3 className="text-xl font-bold text-white mb-3">{item.title}</h3>
+                <p className="text-gray-400 text-sm">{item.description}</p>
+              </div>
             </div>
-            <div className="flex items-center gap-2 text-white font-bold tracking-widest text-[10px] uppercase">
-              <Zap className="w-4 h-4" />
-              WAHA Plus
-            </div>
-            <div className="flex items-center gap-2 text-white font-bold tracking-widest text-[10px] uppercase">
-              <Activity className="w-4 h-4" />
-              Convex Realtime
-            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+// Pricing Section
+function PricingSection() {
+  const plans = [
+    {
+      name: "Starter",
+      price: "Free",
+      period: "14-day trial",
+      description: "Perfect for trying out MyChatFlow",
+      features: [
+        "1 WhatsApp instance",
+        "100 AI responses/month",
+        "Basic analytics",
+        "Email support",
+      ],
+      cta: "Start Free Trial",
+      highlighted: false,
+    },
+    {
+      name: "Professional",
+      price: "$49",
+      period: "/month",
+      description: "For individual agents and small teams",
+      features: [
+        "3 WhatsApp instances",
+        "1,000 AI responses/month",
+        "Advanced analytics",
+        "Bulk campaigns",
+        "Priority support",
+        "Custom AI training",
+      ],
+      cta: "Start Free Trial",
+      highlighted: true,
+    },
+    {
+      name: "Enterprise",
+      price: "Custom",
+      period: "contact us",
+      description: "For brokerages and large teams",
+      features: [
+        "Unlimited instances",
+        "Unlimited AI responses",
+        "White-label option",
+        "API access",
+        "Dedicated support",
+        "Custom integrations",
+      ],
+      cta: "Contact Sales",
+      highlighted: false,
+    },
+  ];
+
+  return (
+    <section id="pricing" className="py-20 px-6">
+      <div className="max-w-6xl mx-auto">
+        <div className="text-center mb-16">
+          <h2 className="text-4xl font-bold text-white mb-4">Simple, Transparent Pricing</h2>
+          <p className="text-gray-400 max-w-2xl mx-auto">
+            Start free, upgrade when you're ready. No hidden fees, cancel anytime.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          {plans.map((plan, i) => (
+            <Card
+              key={i}
+              className={cn(
+                "relative overflow-hidden transition-all",
+                plan.highlighted
+                  ? "bg-gradient-to-br from-emerald-950/80 to-gray-900 border-emerald-500/50 scale-105"
+                  : "bg-gray-900/40 border-gray-800/50 hover:border-gray-700"
+              )}
+            >
+              {plan.highlighted && (
+                <div className="absolute top-0 right-0 bg-emerald-500 text-white text-xs font-bold px-3 py-1 rounded-bl-lg">
+                  POPULAR
+                </div>
+              )}
+              <CardContent className="p-8">
+                <h3 className="text-xl font-bold text-white mb-2">{plan.name}</h3>
+                <p className="text-gray-400 text-sm mb-4">{plan.description}</p>
+                <div className="mb-6">
+                  <span className="text-4xl font-black text-white">{plan.price}</span>
+                  <span className="text-gray-500 ml-1">{plan.period}</span>
+                </div>
+                <ul className="space-y-3 mb-8">
+                  {plan.features.map((feature, j) => (
+                    <li key={j} className="flex items-center gap-3 text-gray-300 text-sm">
+                      <CheckCircle2 className="w-5 h-5 text-emerald-500 shrink-0" />
+                      {feature}
+                    </li>
+                  ))}
+                </ul>
+                <Button
+                  asChild
+                  className={cn(
+                    "w-full",
+                    plan.highlighted
+                      ? "bg-emerald-600 hover:bg-emerald-500 text-white"
+                      : "bg-gray-800 hover:bg-gray-700 text-white"
+                  )}
+                >
+                  <Link href="/sign-up">{plan.cta}</Link>
+                </Button>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+// Testimonials Section
+function TestimonialsSection() {
+  const testimonials = [
+    {
+      quote: "MyChatFlow helped me respond to leads instantly. I've closed 3 more deals this month just from faster follow-ups.",
+      name: "Sarah Martinez",
+      role: "Real Estate Agent, Miami",
+      avatar: "SM",
+    },
+    {
+      quote: "My team was skeptical about AI, but the responses are so natural that clients can't tell the difference. Game changer.",
+      name: "Michael Chen",
+      role: "Broker, Los Angeles",
+      avatar: "MC",
+    },
+    {
+      quote: "I was losing leads because I couldn't respond at night. Now my AI handles inquiries 24/7 and I wake up to qualified prospects.",
+      name: "Jennifer Adams",
+      role: "Real Estate Agent, Austin",
+      avatar: "JA",
+    },
+  ];
+
+  return (
+    <section className="py-20 px-6 bg-gray-900/30">
+      <div className="max-w-6xl mx-auto">
+        <div className="text-center mb-16">
+          <h2 className="text-4xl font-bold text-white mb-4">Loved by Real Estate Professionals</h2>
+          <p className="text-gray-400 max-w-2xl mx-auto">
+            See how agents and brokers are using MyChatFlow to close more deals.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          {testimonials.map((testimonial, i) => (
+            <Card key={i} className="bg-gray-900/40 border-gray-800/50">
+              <CardContent className="p-6">
+                <div className="flex gap-1 mb-4">
+                  {[1,2,3,4,5].map((star) => (
+                    <Sparkles key={star} className="w-4 h-4 text-amber-400 fill-amber-400" />
+                  ))}
+                </div>
+                <p className="text-gray-300 mb-6 italic">"{testimonial.quote}"</p>
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-emerald-500 to-green-600 flex items-center justify-center text-white font-bold text-sm">
+                    {testimonial.avatar}
+                  </div>
+                  <div>
+                    <p className="text-white font-medium text-sm">{testimonial.name}</p>
+                    <p className="text-gray-500 text-xs">{testimonial.role}</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+// FAQ Section
+function FAQSection() {
+  const faqs = [
+    {
+      question: "Is my WhatsApp account safe?",
+      answer: "Yes. MyChatFlow uses the official WhatsApp Web protocol. Your account stays on your phone, and you can disconnect anytime. We never store your WhatsApp credentials.",
+    },
+    {
+      question: "Will WhatsApp ban my number?",
+      answer: "We use smart rate limiting and human-like response patterns to keep your account safe. Thousands of messages are sent daily through MyChatFlow without issues.",
+    },
+    {
+      question: "Can I customize the AI responses?",
+      answer: "Absolutely. You can set your business context, preferred tone, quick replies, and even specific responses for common questions. The AI adapts to your communication style.",
+    },
+    {
+      question: "What happens when the AI can't answer?",
+      answer: "You'll get a notification, and the conversation is flagged for human follow-up. You can also set specific keywords that automatically route to you.",
+    },
+    {
+      question: "Can I use this with my team?",
+      answer: "Yes! MyChatFlow supports teams with role-based access. Assign leads to agents, track performance, and collaborate from one dashboard.",
+    },
+    {
+      question: "Is there a contract or commitment?",
+      answer: "No contracts. Pay monthly, cancel anytime. Start with a free 14-day trial—no credit card required.",
+    },
+  ];
+
+  return (
+    <section id="faq" className="py-20 px-6">
+      <div className="max-w-3xl mx-auto">
+        <div className="text-center mb-16">
+          <h2 className="text-4xl font-bold text-white mb-4">Frequently Asked Questions</h2>
+          <p className="text-gray-400">
+            Got questions? We've got answers.
+          </p>
+        </div>
+
+        <div className="space-y-4">
+          {faqs.map((faq, i) => (
+            <Card key={i} className="bg-gray-900/40 border-gray-800/50">
+              <CardContent className="p-6">
+                <h3 className="text-white font-semibold mb-2">{faq.question}</h3>
+                <p className="text-gray-400 text-sm">{faq.answer}</p>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+// CTA Section
+function CTASection() {
+  return (
+    <section className="py-20 px-6">
+      <div className="max-w-4xl mx-auto text-center">
+        <div className="bg-gradient-to-br from-emerald-950/80 to-gray-900 rounded-3xl p-12 border border-emerald-500/20">
+          <h2 className="text-4xl font-bold text-white mb-4">Ready to Close More Deals?</h2>
+          <p className="text-gray-400 mb-8 max-w-xl mx-auto">
+            Join hundreds of real estate professionals who are converting more leads with AI-powered WhatsApp automation.
+          </p>
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <Button asChild size="lg" className="h-14 px-10 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-lg rounded-xl">
+              <Link href="/sign-up" className="flex items-center gap-2">
+                Start Your Free Trial
+                <ArrowRight className="w-5 h-5" />
+              </Link>
+            </Button>
+          </div>
+          <p className="text-sm text-gray-500 mt-4">No credit card required. Free 14-day trial.</p>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+// Footer
+function Footer() {
+  return (
+    <footer className="border-t border-gray-800/50 py-12 px-6">
+      <div className="max-w-6xl mx-auto">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
+          <div>
+            <Link href="/" className="flex items-center gap-2 mb-4">
+              <div className="w-8 h-8 bg-gradient-to-tr from-emerald-500 to-green-400 rounded-lg flex items-center justify-center">
+                <Bot className="w-5 h-5 text-white" />
+              </div>
+              <span className="text-lg font-bold text-white">MyChatFlow</span>
+            </Link>
+            <p className="text-gray-500 text-sm">
+              AI-powered WhatsApp automation for real estate professionals.
+            </p>
+          </div>
+
+          <div>
+            <h4 className="text-white font-semibold mb-4">Product</h4>
+            <ul className="space-y-2">
+              <li><a href="#features" className="text-gray-400 hover:text-white text-sm">Features</a></li>
+              <li><a href="#pricing" className="text-gray-400 hover:text-white text-sm">Pricing</a></li>
+              <li><a href="#faq" className="text-gray-400 hover:text-white text-sm">FAQ</a></li>
+            </ul>
+          </div>
+
+          <div>
+            <h4 className="text-white font-semibold mb-4">Company</h4>
+            <ul className="space-y-2">
+              <li><Link href="/about" className="text-gray-400 hover:text-white text-sm">About</Link></li>
+              <li><a href="mailto:support@mychatflow.com" className="text-gray-400 hover:text-white text-sm">Contact</a></li>
+            </ul>
+          </div>
+
+          <div>
+            <h4 className="text-white font-semibold mb-4">Legal</h4>
+            <ul className="space-y-2">
+              <li><Link href="/terms" className="text-gray-400 hover:text-white text-sm">Terms of Service</Link></li>
+              <li><Link href="/privacy" className="text-gray-400 hover:text-white text-sm">Privacy Policy</Link></li>
+            </ul>
+          </div>
+        </div>
+
+        <Separator className="bg-gray-800 mb-8" />
+
+        <div className="flex flex-col md:flex-row justify-between items-center gap-4">
+          <p className="text-gray-500 text-sm">
+            © {new Date().getFullYear()} MyChatFlow. All rights reserved.
+          </p>
+          <div className="flex items-center gap-6">
+            <span className="text-gray-500 text-xs">Powered by advanced AI</span>
           </div>
         </div>
       </div>
+    </footer>
+  );
+}
+
+function LandingPage() {
+  return (
+    <div className="min-h-screen bg-[#02040a] relative overflow-hidden">
+      <Navigation />
+      <HeroSection />
+      <FeaturesSection />
+      <HowItWorksSection />
+      <TestimonialsSection />
+      <PricingSection />
+      <FAQSection />
+      <CTASection />
+      <Footer />
     </div>
   );
 }
