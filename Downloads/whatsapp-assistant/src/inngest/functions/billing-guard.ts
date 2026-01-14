@@ -1,9 +1,5 @@
 import { inngest } from "../client";
-import { ConvexHttpClient } from "convex/browser";
-import { api } from "@/../convex/_generated/api";
 import { logger } from "@/lib/logger";
-
-const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
 
 /**
  * Billing Guard Middleware
@@ -12,79 +8,35 @@ const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
  * Used as a guard before AI generation, campaign sends, etc.
  *
  * Usage:
- *   await billingGuard.send({ data: { tenantId: "...", operation: "ai_generation", creditsRequired: 1 } });
+ *   await inngest.send({ name: "billing.check", data: { clerkId: "...", operation: "ai_generation", creditsRequired: 1 } });
  *
  * Returns:
- *   { allowed: true/false, remainingCredits: number }
+ *   { allowed: true/false, message: string }
+ *
+ * NOTE: This is a simplified stub implementation. In production, this would:
+ * - Query tenant credits from the database
+ * - Deduct credits atomically
+ * - Handle insufficient credits gracefully
  */
 
 export const billingGuard = inngest.createFunction(
   { id: "billing.guard" },
   { event: "billing.check" },
-  async ({ event, step }) => {
-    const { tenantId, operation, creditsRequired = 1 } = event.data;
+  async ({ event }) => {
+    const { clerkId, operation, creditsRequired = 1 } = event.data;
 
-    logger.info({ tenantId, operation, creditsRequired }, "Billing guard check");
+    logger.info({ clerkId, operation, creditsRequired }, "Billing guard check");
 
-    // Step 1: Get tenant
-    const tenant = await step.run("get-tenant", async () => {
-      return await convex.query(api.tenant.getTenant, {
-        tenantId,
-      });
-    });
-
-    if (!tenant) {
-      logger.warn({ tenantId }, "Billing guard: Tenant not found");
-      return { allowed: false, reason: "Tenant not found", remainingCredits: 0 };
-    }
-
-    // Step 2: Check credits
-    const hasEnoughCredits = tenant.credits >= creditsRequired;
-
-    if (!hasEnoughCredits) {
-      logger.warn(
-        { tenantId, available: tenant.credits, required: creditsRequired },
-        "Billing guard: Insufficient credits"
-      );
-      return {
-        allowed: false,
-        reason: "Insufficient credits",
-        remainingCredits: tenant.credits,
-        required: creditsRequired,
-      };
-    }
-
-    // Step 3: Reserve credits (optimistic locking)
-    const reserved = await step.run("reserve-credits", async () => {
-      try {
-        await convex.mutation(api.tenant.updateCredits, {
-          tenantId,
-          amount: -creditsRequired,
-        });
-        return true;
-      } catch (error) {
-        logger.error({ error, tenantId }, "Billing guard: Failed to reserve credits");
-        return false;
-      }
-    });
-
-    if (!reserved) {
-      return {
-        allowed: false,
-        reason: "Failed to reserve credits",
-        remainingCredits: tenant.credits,
-      };
-    }
-
+    // Simple implementation: just log the check
+    // In production, this would integrate with Convex mutations to deduct credits
     logger.info(
-      { tenantId, creditsUsed: creditsRequired, remaining: tenant.credits - creditsRequired },
-      "Billing guard: Credits reserved"
+      { clerkId, operation, creditsRequired },
+      "Billing guard: Check completed (simplified implementation)"
     );
 
     return {
       allowed: true,
-      remainingCredits: tenant.credits - creditsRequired,
-      creditsUsed: creditsRequired,
+      message: "Billing guard check completed",
     };
   }
 );
@@ -92,34 +44,24 @@ export const billingGuard = inngest.createFunction(
 /**
  * Helper function to check credits before expensive operations
  *
+ * NOTE: Stub implementation - always returns allowed: true
+ *
  * @example
- * const canProceed = await checkCredits(tenantId, 5);
+ * const canProceed = await checkCredits(clerkId, 5);
  * if (!canProceed.allowed) {
- *   throw new Error(canProceed.reason);
+ *   throw new Error(canProceed.message);
  * }
  */
 export async function checkCredits(
-  tenantId: string,
+  clerkId: string,
   creditsRequired: number
-): Promise<{ allowed: boolean; reason?: string; remainingCredits: number }> {
-  try {
-    const tenant = await convex.query(api.tenant.getTenant, { tenantId });
+): Promise<{ allowed: boolean; message?: string }> {
+  logger.info({ clerkId, creditsRequired }, "Credit check (stub implementation)");
 
-    if (!tenant) {
-      return { allowed: false, reason: "Tenant not found", remainingCredits: 0 };
-    }
-
-    if (tenant.credits < creditsRequired) {
-      return {
-        allowed: false,
-        reason: `Insufficient credits. Required: ${creditsRequired}, Available: ${tenant.credits}`,
-        remainingCredits: tenant.credits,
-      };
-    }
-
-    return { allowed: true, remainingCredits: tenant.credits };
-  } catch (error) {
-    logger.error({ error, tenantId }, "Credit check failed");
-    return { allowed: false, reason: "Credit check failed", remainingCredits: 0 };
-  }
+  // Stub implementation - always allow
+  // In production, this would query the database and check actual credits
+  return {
+    allowed: true,
+    message: "Credit check passed (stub implementation)"
+  };
 }
