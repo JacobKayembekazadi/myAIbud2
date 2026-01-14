@@ -4,6 +4,7 @@ import { api } from "@/../convex/_generated/api";
 import { inngest } from "@/inngest/client";
 import { whatsapp } from "@/lib/whatsapp";
 import { webhookRateLimiter, getRateLimitIdentifier } from "@/lib/ratelimit";
+import { logger, logWebhook, logSecurity } from "@/lib/logger";
 
 const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
 
@@ -14,7 +15,7 @@ export async function POST(request: NextRequest) {
     const { success, limit, remaining, reset } = await webhookRateLimiter.limit(identifier);
 
     if (!success) {
-      console.warn(`[Security] Rate limit exceeded for ${identifier}`);
+      logSecurity("rate_limit", { ip: identifier, endpoint: "/api/webhooks/whatsapp" });
       return NextResponse.json(
         { error: "Too many requests" },
         {
@@ -33,11 +34,12 @@ export async function POST(request: NextRequest) {
     const body = await request.text();
 
     if (!whatsapp.verifyWebhook(body, signature)) {
+      logSecurity("invalid_signature", { ip: identifier, endpoint: "/api/webhooks/whatsapp" });
       return NextResponse.json({ error: "Invalid signature" }, { status: 401 });
     }
 
     const payload = JSON.parse(body);
-    console.log("📨 Webhook payload received:", JSON.stringify(payload, null, 2));
+    logWebhook("received", { instanceId: payload.session });
 
     // Check if this is a session status event
     const sessionStatus = whatsapp.parseSessionStatus(payload);
@@ -47,7 +49,7 @@ export async function POST(request: NextRequest) {
         instanceId: sessionStatus.instanceId,
         status: sessionStatus.mappedStatus,
       });
-      console.log(`✅ Session status updated: ${sessionStatus.instanceId} -> ${sessionStatus.mappedStatus}`);
+      logger.info({ instanceId: sessionStatus.instanceId, status: sessionStatus.mappedStatus }, "Session status updated");
       return NextResponse.json({ status: "ok", event: "session.status" });
     }
 
@@ -55,14 +57,14 @@ export async function POST(request: NextRequest) {
     const parsed = whatsapp.parseWebhook(payload);
     
     if (!parsed || parsed.data.fromMe) {
-      console.log("⏭️ Webhook ignored - not a valid message or fromMe:", parsed?.data?.fromMe);
+      logger.debug({ fromMe: parsed?.data?.fromMe }, "Webhook ignored");
       return NextResponse.json({ status: "ignored" });
     }
 
-    console.log("💬 Parsed webhook:", {
+    logWebhook("verified", {
       instanceId: parsed.instanceId,
       from: parsed.data.from,
-      content: parsed.data.content?.substring(0, 50),
+      messageType: parsed.data.messageType,
     });
 
     const instance = await convex.query(api.instances.getInstance, {
@@ -70,11 +72,11 @@ export async function POST(request: NextRequest) {
     });
 
     if (!instance) {
-      console.error("❌ Instance not found:", parsed.instanceId);
+      logger.error({ instanceId: parsed.instanceId }, "Instance not found");
       return NextResponse.json({ error: "Instance not found" }, { status: 404 });
     }
 
-    console.log("👤 Upserting contact...");
+    logger.debug({ phone: parsed.data.from }, "Upserting contact");
     const contactId = await convex.mutation(api.contacts.upsertContact, {
       tenantId: instance.tenantId,
       instanceId: parsed.instanceId,
@@ -82,7 +84,7 @@ export async function POST(request: NextRequest) {
       name: parsed.data.pushName,
     });
 
-    console.log("📝 Logging interaction...");
+    logger.debug({ contactId: contactId.toString() }, "Logging interaction");
     await convex.mutation(api.interactions.addInteraction, {
       contactId,
       tenantId: instance.tenantId,
@@ -90,38 +92,34 @@ export async function POST(request: NextRequest) {
       content: parsed.data.content,
     });
 
-    console.log("🚀 Triggering Inngest event...");
+    logger.debug("Triggering Inngest event");
 
     // Send to Inngest with error handling
-    try {
-      const eventData = {
-        name: "message.upsert",
-        data: {
-          contactId: contactId.toString(),
-          instanceId: parsed.instanceId,
-          tenantId: instance.tenantId.toString(),
-          phone: parsed.data.from,
-          content: parsed.data.content,
-          messageType: parsed.data.messageType,
-        },
-      };
+    const eventData = {
+      name: "message.upsert",
+      data: {
+        contactId: contactId.toString(),
+        instanceId: parsed.instanceId,
+        tenantId: instance.tenantId.toString(),
+        phone: parsed.data.from,
+        content: parsed.data.content,
+        messageType: parsed.data.messageType,
+      },
+    };
 
-      console.log("📤 Sending Inngest event:", JSON.stringify(eventData, null, 2));
-      console.log("🔑 Inngest config check:", {
-        eventKey: process.env.INNGEST_EVENT_KEY ? "✅ SET" : "❌ MISSING",
-        appUrl: process.env.NEXT_PUBLIC_APP_URL || "❌ MISSING",
-      });
-      
+    try {
+      logger.debug({ eventName: eventData.name, contactId: eventData.data.contactId }, "Sending Inngest event");
+
       const result = await inngest.send(eventData);
-      
-      console.log("✅ Inngest event sent successfully:", result);
+
+      logger.info({ result }, "Inngest event sent successfully");
+      logWebhook("processed", { instanceId: parsed.instanceId, from: parsed.data.from });
     } catch (inngestError) {
-      console.error("❌ Inngest send failed:", inngestError);
-      console.error("Inngest error details:", {
-        message: inngestError instanceof Error ? inngestError.message : String(inngestError),
-        stack: inngestError instanceof Error ? inngestError.stack : undefined,
-        eventKey: process.env.INNGEST_EVENT_KEY ? "SET" : "MISSING",
-        appUrl: process.env.NEXT_PUBLIC_APP_URL,
+      logger.error({ error: inngestError, contactId: eventData.data.contactId }, "Inngest send failed");
+      logWebhook("failed", {
+        instanceId: parsed.instanceId,
+        from: parsed.data.from,
+        error: inngestError
       });
       // Don't fail the webhook - we still want to log the message
       // but log the Inngest error for debugging
@@ -129,7 +127,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ status: "ok" });
   } catch (error) {
-    console.error("❌ Webhook error:", error);
+    logger.error({ error }, "Webhook processing error");
     return NextResponse.json({ error: "Internal error" }, { status: 500 });
   }
 }
