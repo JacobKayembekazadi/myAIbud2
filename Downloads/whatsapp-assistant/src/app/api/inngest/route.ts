@@ -4,12 +4,15 @@ import { inngest } from "@/inngest/client";
 import { messageAgent } from "@/inngest/agent";
 import { campaignSender } from "@/inngest/functions/campaign-sender";
 import { sendInviteEmail } from "@/inngest/functions/send-invite-email";
+import { billingGuard } from "@/inngest/functions/billing-guard";
+import { visionEstimator } from "@/inngest/functions/vision-estimator";
 import { inngestRateLimiter, getRateLimitIdentifier } from "@/lib/ratelimit";
+import { logSecurity } from "@/lib/logger";
 
 // Create base handlers from Inngest
 const baseHandlers = serve({
     client: inngest,
-    functions: [messageAgent, campaignSender, sendInviteEmail],
+    functions: [messageAgent, campaignSender, sendInviteEmail, billingGuard, visionEstimator],
 });
 
 // Wrap handlers with rate limiting middleware
@@ -23,7 +26,7 @@ async function withRateLimit(
   const { success, limit, remaining, reset } = await inngestRateLimiter.limit(identifier);
 
   if (!success) {
-    console.warn(`[Security] Rate limit exceeded for Inngest endpoint: ${identifier}`);
+    logSecurity("rate_limit", { ip: identifier, endpoint: "/api/inngest" });
     return NextResponse.json(
       { error: "Too many requests" },
       {
