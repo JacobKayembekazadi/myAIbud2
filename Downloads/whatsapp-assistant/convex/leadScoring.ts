@@ -1,6 +1,5 @@
 import { v } from "convex/values";
 import { mutation, query, internalMutation } from "./_generated/server";
-import { Id } from "./_generated/dataModel";
 
 /**
  * Lead Scoring Model for Real Estate
