@@ -9,11 +9,14 @@
  */
 
 import type * as analytics from "../analytics.js";
+import type * as appointments from "../appointments.js";
 import type * as campaigns from "../campaigns.js";
 import type * as contacts from "../contacts.js";
+import type * as followUpSequences from "../followUpSequences.js";
 import type * as instances from "../instances.js";
 import type * as interactions from "../interactions.js";
 import type * as leadScoring from "../leadScoring.js";
+import type * as notifications from "../notifications.js";
 import type * as organizations from "../organizations.js";
 import type * as sentiment from "../sentiment.js";
 import type * as settings from "../settings.js";
@@ -29,11 +32,14 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   analytics: typeof analytics;
+  appointments: typeof appointments;
   campaigns: typeof campaigns;
   contacts: typeof contacts;
+  followUpSequences: typeof followUpSequences;
   instances: typeof instances;
   interactions: typeof interactions;
   leadScoring: typeof leadScoring;
+  notifications: typeof notifications;
   organizations: typeof organizations;
   sentiment: typeof sentiment;
   settings: typeof settings;
