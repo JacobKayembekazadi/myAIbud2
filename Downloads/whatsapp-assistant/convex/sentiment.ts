@@ -173,20 +173,16 @@ export const analyzeContactSentiment = query({
 
     // Calculate trend (compare first half vs second half)
     const halfPoint = Math.floor(analyses.length / 2);
+    let trend: "improving" | "declining" | "stable" = "stable";
     if (analyses.length >= 4) {
       const recentNegative = analyses.slice(0, halfPoint).filter((a) => a.sentiment === "negative").length;
       const olderNegative = analyses.slice(halfPoint).filter((a) => a.sentiment === "negative").length;
 
-      var trend: "improving" | "declining" | "stable";
       if (recentNegative < olderNegative) {
         trend = "improving";
       } else if (recentNegative > olderNegative) {
         trend = "declining";
-      } else {
-        trend = "stable";
       }
-    } else {
-      trend = "stable";
     }
 
     // Average confidence
