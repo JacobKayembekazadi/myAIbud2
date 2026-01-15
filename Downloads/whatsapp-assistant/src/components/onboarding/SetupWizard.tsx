@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { X, CheckCircle2 } from "lucide-react";
 
 import { WelcomeStep } from "./steps/WelcomeStep";
+import { BusinessProfileStep } from "./steps/BusinessProfileStep";
 import { CreateInstanceStep } from "./steps/CreateInstanceStep";
 import { ScanQRStep } from "./steps/ScanQRStep";
 import { ConfigureAgentStep } from "./steps/ConfigureAgentStep";
@@ -28,10 +29,11 @@ interface SetupWizardProps {
 
 const STEPS = [
   { id: 0, title: "Welcome", description: "Get started with MyChatFlow" },
-  { id: 1, title: "Create Instance", description: "Set up your WhatsApp instance" },
-  { id: 2, title: "Connect WhatsApp", description: "Scan QR code to link" },
-  { id: 3, title: "Configure AI", description: "Choose when AI responds" },
-  { id: 4, title: "Test AI", description: "Try your AI assistant" },
+  { id: 1, title: "Business Profile", description: "Tell us about your business" },
+  { id: 2, title: "Create Instance", description: "Set up your WhatsApp instance" },
+  { id: 3, title: "Connect WhatsApp", description: "Scan QR code to link" },
+  { id: 4, title: "Configure AI", description: "Choose when AI responds" },
+  { id: 5, title: "Test AI", description: "Try your AI assistant" },
 ];
 
 export function SetupWizard({
@@ -55,11 +57,11 @@ export function SetupWizard({
 
   useEffect(() => {
     // Auto-advance based on actual progress
-    if (instances && instances.length > 0 && currentStep === 1) {
-      setCurrentStep(2);
+    if (instances && instances.length > 0 && currentStep === 2) {
+      setCurrentStep(3); // Skip Create Instance if already have one
     }
-    if (connectedInstance && currentStep === 2) {
-      setCurrentStep(3); // Move to Configure AI step
+    if (connectedInstance && currentStep === 3) {
+      setCurrentStep(4); // Move to Configure AI step
     }
   }, [instances, connectedInstance, currentStep]);
 
@@ -99,13 +101,21 @@ export function SetupWizard({
         return <WelcomeStep onNext={handleNext} />;
       case 1:
         return (
-          <CreateInstanceStep
+          <BusinessProfileStep
             tenantId={tenantId}
-            onInstanceCreated={handleInstanceCreated}
-            onSkip={() => setCurrentStep(2)}
+            onNext={handleNext}
+            onSkip={handleNext}
           />
         );
       case 2:
+        return (
+          <CreateInstanceStep
+            tenantId={tenantId}
+            onInstanceCreated={handleInstanceCreated}
+            onSkip={() => setCurrentStep(3)}
+          />
+        );
+      case 3:
         return (
           <ScanQRStep
             instanceId={createdInstanceId || latestInstance?.instanceId || ""}
@@ -113,7 +123,7 @@ export function SetupWizard({
             onSkip={handleNext}
           />
         );
-      case 3:
+      case 4:
         return (
           <ConfigureAgentStep
             tenantId={tenantId}
@@ -121,7 +131,7 @@ export function SetupWizard({
             onSkip={handleNext}
           />
         );
-      case 4:
+      case 5:
         return (
           <TestAIStep
             tenantId={tenantId}

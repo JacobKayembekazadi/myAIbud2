@@ -65,7 +65,7 @@ export const markInstanceCreated = mutation({
   handler: async (ctx, args) => {
     await ctx.db.patch(args.tenantId, {
       hasCreatedInstance: true,
-      onboardingStep: 1,
+      onboardingStep: 2, // Step 2: Create Instance
       updatedAt: Date.now(),
     });
   },
@@ -76,7 +76,7 @@ export const markWhatsAppConnected = mutation({
   handler: async (ctx, args) => {
     await ctx.db.patch(args.tenantId, {
       hasConnectedWhatsApp: true,
-      onboardingStep: 2,
+      onboardingStep: 3, // Step 3: Connect WhatsApp
       updatedAt: Date.now(),
     });
   },
@@ -87,7 +87,7 @@ export const markContactsSynced = mutation({
   handler: async (ctx, args) => {
     await ctx.db.patch(args.tenantId, {
       hasSyncedContacts: true,
-      onboardingStep: 3,
+      onboardingStep: 4, // Step 4: Configure AI
       updatedAt: Date.now(),
     });
   },
@@ -98,7 +98,7 @@ export const markAITested = mutation({
   handler: async (ctx, args) => {
     await ctx.db.patch(args.tenantId, {
       hasTestedAI: true,
-      onboardingStep: 3, // Keep at last valid step (0-3), completion tracked by onboardingCompleted
+      onboardingStep: 5, // Step 5: Test AI (last step), completion tracked by onboardingCompleted
       updatedAt: Date.now(),
     });
   },
@@ -109,7 +109,7 @@ export const completeOnboarding = mutation({
   handler: async (ctx, args) => {
     await ctx.db.patch(args.tenantId, {
       onboardingCompleted: true,
-      onboardingStep: 3, // Keep at last valid step (0-3)
+      onboardingStep: 5, // Keep at last valid step (0-5)
       updatedAt: Date.now(),
     });
   },

@@ -26,6 +26,15 @@ export const getSettings = query({
                 emailNotifications: true,
                 smsNotifications: false,
                 defaultInstanceId: undefined,
+                // Business Profile defaults
+                businessName: undefined,
+                industry: "general",
+                businessDescription: undefined,
+                servicesOffered: [],
+                businessLocation: undefined,
+                aiPersonality: "professional",
+                customSystemPrompt: undefined,
+                useQuickRepliesAsKnowledge: true,
                 // Agent activation defaults
                 agentActivationMode: "always_on" as const,
                 activationKeywords: DEFAULT_ACTIVATION_KEYWORDS,
@@ -41,6 +50,12 @@ export const getSettings = query({
         // Merge with defaults for missing fields
         return {
             ...settings,
+            // Business Profile defaults
+            industry: settings.industry ?? "general",
+            servicesOffered: settings.servicesOffered ?? [],
+            aiPersonality: settings.aiPersonality ?? "professional",
+            useQuickRepliesAsKnowledge: settings.useQuickRepliesAsKnowledge ?? true,
+            // Agent activation defaults
             agentActivationMode: settings.agentActivationMode ?? "always_on",
             activationKeywords: settings.activationKeywords ?? DEFAULT_ACTIVATION_KEYWORDS,
             fallbackMessage: settings.fallbackMessage ?? "Hi! I'm currently not available. Type 'help' to speak with our AI assistant.",
@@ -64,6 +79,15 @@ export const updateSettings = mutation({
         aiMaxTokens: v.optional(v.number()),
         emailNotifications: v.optional(v.boolean()),
         smsNotifications: v.optional(v.boolean()),
+        // Business Profile settings
+        businessName: v.optional(v.string()),
+        industry: v.optional(v.string()),
+        businessDescription: v.optional(v.string()),
+        servicesOffered: v.optional(v.array(v.string())),
+        businessLocation: v.optional(v.string()),
+        aiPersonality: v.optional(v.string()),
+        customSystemPrompt: v.optional(v.string()),
+        useQuickRepliesAsKnowledge: v.optional(v.boolean()),
         // Agent activation settings
         agentActivationMode: v.optional(
             v.union(

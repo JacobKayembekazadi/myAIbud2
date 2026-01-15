@@ -7,6 +7,112 @@ import { whatsapp } from "@/lib/whatsapp";
 
 const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
 
+// Industry-specific prompt templates
+const INDUSTRY_PROMPTS: Record<string, string> = {
+  real_estate: `Your role is to:
+- Qualify leads by understanding their property needs (buying, selling, renting)
+- Collect relevant information (budget, preferred areas, property type, timeline)
+- Schedule viewing appointments or callbacks
+- Answer common questions about the buying/selling process
+- Provide information about available properties when asked`,
+
+  automotive: `Your role is to:
+- Help customers find the right vehicle for their needs
+- Collect information about preferences (budget, vehicle type, features)
+- Schedule test drives and showroom visits
+- Answer questions about financing options and trade-ins
+- Provide details about available inventory`,
+
+  retail: `Your role is to:
+- Help customers find products they're looking for
+- Answer questions about product availability and pricing
+- Assist with order status inquiries
+- Handle basic returns and exchange questions
+- Provide information about promotions and deals`,
+
+  hospitality: `Your role is to:
+- Help guests with booking inquiries and reservations
+- Answer questions about amenities and services
+- Provide information about pricing and availability
+- Handle special requests and preferences
+- Share local recommendations and travel tips`,
+
+  healthcare: `Your role is to:
+- Help patients schedule appointments
+- Answer general questions about services offered
+- Provide clinic hours and location information
+- Handle prescription refill requests (directing to appropriate channels)
+- Note: Always advise patients to consult medical professionals for health advice`,
+
+  professional_services: `Your role is to:
+- Qualify potential clients and understand their needs
+- Schedule consultations and meetings
+- Answer questions about services and pricing
+- Provide information about the team's expertise
+- Handle general inquiries professionally`,
+
+  general: `Your role is to:
+- Answer questions about the business and its services
+- Help customers with their inquiries
+- Schedule appointments or callbacks when needed
+- Provide helpful information and assistance
+- Direct complex queries to the appropriate person`,
+};
+
+// Personality tone instructions
+const PERSONALITY_TONES: Record<string, string> = {
+  professional: "Be professional, formal, and business-like. Use proper grammar and maintain a courteous demeanor.",
+  friendly: "Be warm, friendly, and approachable. Use a conversational tone while remaining helpful.",
+  casual: "Be relaxed and casual in your responses. Feel free to use informal language while staying helpful.",
+  enthusiastic: "Be energetic and enthusiastic! Show excitement about helping and use positive language.",
+};
+
+// Helper: Build dynamic system prompt from business profile
+function buildSystemPrompt(settings: any, quickRepliesContext: string): string {
+  // If custom prompt is provided, use it directly
+  if (settings.customSystemPrompt && settings.customSystemPrompt.trim()) {
+    return settings.customSystemPrompt + quickRepliesContext;
+  }
+
+  // Build dynamic prompt from business profile
+  const businessName = settings.businessName || "the business";
+  const industry = settings.industry || "general";
+  const industryPrompt = INDUSTRY_PROMPTS[industry] || INDUSTRY_PROMPTS.general;
+  const personality = settings.aiPersonality || "professional";
+  const toneInstruction = PERSONALITY_TONES[personality] || PERSONALITY_TONES.professional;
+
+  let prompt = `You are an AI assistant for ${businessName}.`;
+
+  // Add business description if available
+  if (settings.businessDescription) {
+    prompt += ` ${settings.businessDescription}`;
+  }
+
+  // Add location if available
+  if (settings.businessLocation) {
+    prompt += ` Located in ${settings.businessLocation}.`;
+  }
+
+  prompt += `\n\n${industryPrompt}`;
+
+  // Add services if available
+  if (settings.servicesOffered && settings.servicesOffered.length > 0) {
+    prompt += `\n\nServices we offer: ${settings.servicesOffered.join(", ")}.`;
+  }
+
+  prompt += `\n\nCommunication style: ${toneInstruction}`;
+
+  prompt += `\n\nGeneral guidelines:
+- Keep responses concise (1-3 sentences when possible)
+- If you don't know something specific, offer to have someone follow up
+- Be helpful and aim to resolve inquiries or move them forward`;
+
+  // Add quick replies context
+  prompt += quickRepliesContext;
+
+  return prompt;
+}
+
 // Helper: Check if message contains any activation keywords
 function containsKeyword(message: string, keywords: string[]): boolean {
   const lowerMessage = message.toLowerCase();
@@ -194,12 +300,13 @@ export const messageAgent = inngest.createFunction(
         .map((m: any) => (m.type === "inbound" ? "User: " : "Assistant: ") + m.content)
         .join("\n");
 
-      // Build quick replies context if available
+      // Build quick replies context if enabled
       let quickRepliesContext = "";
-      if (quickReplies && quickReplies.length > 0) {
+      const useQuickRepliesAsKnowledge = settings?.useQuickRepliesAsKnowledge ?? true;
+      if (useQuickRepliesAsKnowledge && quickReplies && quickReplies.length > 0) {
         const activeReplies = quickReplies.filter((qr: any) => qr.isActive);
         if (activeReplies.length > 0) {
-          quickRepliesContext = "\n\nAvailable quick responses you can reference:\n" +
+          quickRepliesContext = "\n\nKnowledge base (use this information when relevant):\n" +
             activeReplies.map((qr: any) => `- ${qr.label}: ${qr.content}`).join("\n");
         }
       }
@@ -207,16 +314,8 @@ export const messageAgent = inngest.createFunction(
       // Use tenant's AI model setting, fallback to gemini-1.5-flash
       const modelName = settings?.aiModel || "gemini-1.5-flash";
 
-      const systemPrompt = `You are an AI assistant for a real estate agent in South Africa. Your role is to:
-- Qualify leads by understanding their property needs (buying, selling, renting)
-- Collect relevant information (budget, preferred areas, property type)
-- Schedule viewing appointments or callbacks
-- Answer common questions about the buying/selling process
-- Be helpful, professional, and conversational in tone
-- Keep responses concise (1-3 sentences when possible)
-- If you don't know something specific, offer to have the agent follow up
-
-${quickRepliesContext}`;
+      // Build dynamic system prompt from business profile
+      const systemPrompt = buildSystemPrompt(settings, quickRepliesContext);
 
       const { text } = await generateText({
         model: google(modelName),

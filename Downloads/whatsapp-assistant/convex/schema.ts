@@ -180,6 +180,15 @@ export default defineSchema({
     aiMaxTokens: v.number(),
     emailNotifications: v.boolean(),
     smsNotifications: v.boolean(),
+    // Business Profile Settings
+    businessName: v.optional(v.string()), // e.g., "ABC Realty"
+    industry: v.optional(v.string()), // e.g., "real_estate", "automotive", "general"
+    businessDescription: v.optional(v.string()), // What the business does
+    servicesOffered: v.optional(v.array(v.string())), // List of services
+    businessLocation: v.optional(v.string()), // e.g., "Cape Town, South Africa"
+    aiPersonality: v.optional(v.string()), // e.g., "professional", "friendly", "casual"
+    customSystemPrompt: v.optional(v.string()), // Advanced: fully custom prompt
+    useQuickRepliesAsKnowledge: v.optional(v.boolean()), // Use quick replies as AI knowledge base
     // Agent Activation Settings
     agentActivationMode: v.optional(
       v.union(
