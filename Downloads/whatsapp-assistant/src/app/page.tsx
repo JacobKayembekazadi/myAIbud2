@@ -28,9 +28,11 @@ import {
   Sparkles,
   Play,
   Rocket,
+  RefreshCw,
 } from "lucide-react";
 
 import { SetupWizard } from "@/components/onboarding/SetupWizard";
+import { DashboardErrorBoundary } from "@/components/DashboardErrorBoundary";
 
 function DashboardSkeleton() {
   return (
@@ -252,8 +254,44 @@ function Dashboard() {
 
   const [wizardOpen, setWizardOpen] = useState(false);
 
-  // Show skeleton while loading
-  if (tenant === undefined || instances === undefined || contacts === undefined) {
+  // Handle no user ID case
+  if (!userId) {
+    return <DashboardSkeleton />;
+  }
+
+  // Show skeleton while loading tenant
+  if (tenant === undefined) {
+    return <DashboardSkeleton />;
+  }
+
+  // Handle case where tenant doesn't exist (first-time user)
+  if (tenant === null) {
+    return (
+      <div className="min-h-screen bg-gray-950 flex items-center justify-center p-4">
+        <div className="max-w-md w-full">
+          <div className="bg-gray-900 rounded-lg border border-gray-800 p-8 text-center">
+            <div className="w-16 h-16 rounded-full bg-emerald-600/20 flex items-center justify-center mx-auto mb-4">
+              <Bot className="w-8 h-8 text-emerald-400" />
+            </div>
+            <h1 className="text-2xl font-bold text-white mb-2">Setting up your account</h1>
+            <p className="text-gray-400 mb-6">
+              We're creating your account. This should only take a moment...
+            </p>
+            <Button
+              onClick={() => window.location.reload()}
+              className="bg-emerald-600 hover:bg-emerald-700"
+            >
+              <RefreshCw className="w-4 h-4 mr-2" />
+              Refresh Page
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Show skeleton while loading other data (but tenant is loaded)
+  if (instances === undefined || contacts === undefined) {
     return <DashboardSkeleton />;
   }
 
@@ -1126,7 +1164,9 @@ export default function Home() {
   return (
     <>
       <SignedIn>
-        <Dashboard />
+        <DashboardErrorBoundary>
+          <Dashboard />
+        </DashboardErrorBoundary>
       </SignedIn>
       <SignedOut>
         <LandingPage />
