@@ -1,4 +1,4 @@
-﻿import { NextRequest, NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { ConvexHttpClient } from "convex/browser";
 import { api } from "@/../convex/_generated/api";
 import { inngest } from "@/inngest/client";
@@ -6,9 +6,63 @@ import { whatsapp } from "@/lib/whatsapp";
 
 const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
 
+// Simple in-memory rate limiter
+// In production, use Upstash Redis for distributed rate limiting
+const rateLimitMap = new Map<string, { count: number; resetTime: number }>();
+const RATE_LIMIT_WINDOW_MS = 60 * 1000; // 1 minute
+const RATE_LIMIT_MAX_REQUESTS = 100; // 100 requests per minute per IP
+
+function checkRateLimit(ip: string): { allowed: boolean; remaining: number } {
+  const now = Date.now();
+  const record = rateLimitMap.get(ip);
+
+  if (!record || now > record.resetTime) {
+    // New window or expired window
+    rateLimitMap.set(ip, { count: 1, resetTime: now + RATE_LIMIT_WINDOW_MS });
+    return { allowed: true, remaining: RATE_LIMIT_MAX_REQUESTS - 1 };
+  }
+
+  if (record.count >= RATE_LIMIT_MAX_REQUESTS) {
+    return { allowed: false, remaining: 0 };
+  }
+
+  record.count++;
+  return { allowed: true, remaining: RATE_LIMIT_MAX_REQUESTS - record.count };
+}
+
+// Clean up old rate limit entries every 5 minutes
+setInterval(() => {
+  const now = Date.now();
+  for (const [ip, record] of rateLimitMap.entries()) {
+    if (now > record.resetTime) {
+      rateLimitMap.delete(ip);
+    }
+  }
+}, 5 * 60 * 1000);
+
 export async function POST(request: NextRequest) {
   try {
-    const signature = request.headers.get("x-webhook-signature") || 
+    // Rate limiting check
+    const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+               request.headers.get("x-real-ip") ||
+               "unknown";
+    const rateLimit = checkRateLimit(ip);
+
+    if (!rateLimit.allowed) {
+      console.warn(`⚠️ Rate limit exceeded for IP: ${ip}`);
+      return NextResponse.json(
+        { error: "Too many requests" },
+        {
+          status: 429,
+          headers: {
+            "X-RateLimit-Remaining": "0",
+            "Retry-After": "60"
+          }
+        }
+      );
+    }
+
+    const signature = request.headers.get("x-webhook-signature") ||
                      request.headers.get("x-hub-signature-256") || "";
     const body = await request.text();
 

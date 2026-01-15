@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
+import { BILLING_CONFIG, getCreditsLimit } from "./config";
 
 export const getOrCreateTenant = mutation({
   args: {
@@ -156,12 +157,7 @@ export const upgradeToTeam = mutation({
     }
 
     const now = Date.now();
-    const periodDuration = 30 * 24 * 60 * 60 * 1000; // 30 days
-
-    // Determine credit limit based on tier
-    let creditsLimit = 400; // starter
-    if (tenant.tier === "pro") creditsLimit = 2000;
-    if (tenant.tier === "enterprise") creditsLimit = 10000;
+    const creditsLimit = getCreditsLimit(tenant.tier);
 
     // Create organization
     const organizationId = await ctx.db.insert("organizations", {
@@ -172,7 +168,7 @@ export const upgradeToTeam = mutation({
       creditsLimit,
       creditsUsed: 0,
       periodStart: now,
-      periodEnd: now + periodDuration,
+      periodEnd: now + BILLING_CONFIG.periodDurationMs,
       createdAt: now,
       updatedAt: now,
     });

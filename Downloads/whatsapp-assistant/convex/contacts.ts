@@ -19,6 +19,78 @@ export const listContacts = query({
   },
 });
 
+/**
+ * Paginated contact list for better performance with large datasets
+ */
+export const listContactsPaginated = query({
+  args: {
+    tenantId: v.id("tenants"),
+    instanceId: v.optional(v.string()),
+    limit: v.optional(v.number()),
+    cursor: v.optional(v.string()),
+    search: v.optional(v.string()),
+    status: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const limit = args.limit ?? 50;
+
+    let q = ctx.db
+      .query("contacts")
+      .withIndex("by_tenant", (q) => q.eq("tenantId", args.tenantId));
+
+    if (args.instanceId) {
+      q = q.filter((q) => q.eq(q.field("instanceId"), args.instanceId));
+    }
+
+    // Collect all matching contacts (we'll filter and paginate in memory)
+    let contacts = await q.collect();
+
+    // Apply status filter
+    if (args.status) {
+      contacts = contacts.filter((c) => c.status === args.status);
+    }
+
+    // Apply search filter
+    if (args.search) {
+      const searchLower = args.search.toLowerCase();
+      contacts = contacts.filter(
+        (c) =>
+          c.name?.toLowerCase().includes(searchLower) ||
+          c.phone.includes(args.search!) ||
+          c.tags?.some((t) => t.toLowerCase().includes(searchLower))
+      );
+    }
+
+    // Sort by lastInteraction (most recent first)
+    contacts.sort((a, b) => {
+      const aTime = a.lastInteraction || a.createdAt;
+      const bTime = b.lastInteraction || b.createdAt;
+      return bTime - aTime;
+    });
+
+    // Find cursor position
+    let startIndex = 0;
+    if (args.cursor) {
+      const cursorIndex = contacts.findIndex((c) => c._id === args.cursor);
+      if (cursorIndex !== -1) {
+        startIndex = cursorIndex + 1;
+      }
+    }
+
+    // Get page of contacts
+    const pageContacts = contacts.slice(startIndex, startIndex + limit);
+    const hasMore = startIndex + limit < contacts.length;
+    const nextCursor = hasMore ? pageContacts[pageContacts.length - 1]?._id : null;
+
+    return {
+      contacts: pageContacts,
+      nextCursor,
+      hasMore,
+      totalCount: contacts.length,
+    };
+  },
+});
+
 export const getContact = query({
   args: { contactId: v.id("contacts") },
   handler: async (ctx, args) => {
@@ -487,6 +559,7 @@ export const transferContact = mutation({
 
 /**
  * Get assignment statistics for an organization
+ * Optimized: Uses Map for O(n) instead of O(n*m) nested loops
  */
 export const getAssignmentStats = query({
   args: { organizationId: v.id("organizations") },
@@ -503,12 +576,23 @@ export const getAssignmentStats = query({
       .filter((q) => q.eq(q.field("role"), "agent"))
       .collect();
 
-    const unassigned = contacts.filter((c) => !c.assignedTo).length;
+    // Use Map for O(n) aggregation instead of O(n*m) nested loops
+    const assignmentCounts = new Map<string, number>();
+    let unassigned = 0;
+
+    for (const contact of contacts) {
+      if (contact.assignedTo) {
+        const currentCount = assignmentCounts.get(contact.assignedTo) || 0;
+        assignmentCounts.set(contact.assignedTo, currentCount + 1);
+      } else {
+        unassigned++;
+      }
+    }
 
     const byAgent = members.map((member) => ({
       memberId: member._id,
       memberName: member.name || member.email,
-      contactCount: contacts.filter((c) => c.assignedTo === member._id).length,
+      contactCount: assignmentCounts.get(member._id) || 0,
     }));
 
     return {

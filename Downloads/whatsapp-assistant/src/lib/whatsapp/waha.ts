@@ -11,9 +11,14 @@ import type {
   ParsedSessionStatus,
 } from "./types";
 
-const WAHA_API_URL = process.env.WAHA_API_URL || "http://localhost:3000";
+// WAHA API Configuration - WAHA_API_URL is required in production
+const WAHA_API_URL = process.env.WAHA_API_URL;
 const WAHA_API_KEY = process.env.WAHA_API_KEY || "";
 const WAHA_WEBHOOK_SECRET = process.env.WAHA_WEBHOOK_SECRET || "";
+
+if (!WAHA_API_URL) {
+  console.error("❌ WAHA_API_URL environment variable is not set!");
+}
 
 async function wahaFetch(
   endpoint: string,
@@ -252,16 +257,16 @@ export const wahaProvider: WhatsAppProvider = {
   },
 
   verifyWebhook(body: string, signature: string): boolean {
-    // TEMPORARY: Skip verification while debugging webhook 401 errors
-    // TODO: Re-enable once HMAC is properly configured on WAHA instances
-    console.log("Webhook received, signature header:", signature ? "present" : "missing");
-    return true;
-
-    /* DISABLED FOR DEBUGGING
+    // In development without secret, allow all webhooks but log warning
     if (!WAHA_WEBHOOK_SECRET) {
-      // If no secret configured, skip verification in development
-      console.warn("WAHA_WEBHOOK_SECRET not set, skipping verification");
+      console.warn("⚠️ WAHA_WEBHOOK_SECRET not set - webhook verification disabled");
       return true;
+    }
+
+    // If no signature provided, reject in production
+    if (!signature) {
+      console.error("❌ Webhook rejected: No signature provided");
+      return false;
     }
 
     try {
@@ -272,15 +277,27 @@ export const wahaProvider: WhatsAppProvider = {
 
       // Support both formats: raw hex and "sha256=hex"
       const providedSignature = signature.replace("sha256=", "");
-      
-      return crypto.timingSafeEqual(
+
+      // Ensure both buffers are the same length for timingSafeEqual
+      if (expectedSignature.length !== providedSignature.length) {
+        console.error("❌ Webhook rejected: Signature length mismatch");
+        return false;
+      }
+
+      const isValid = crypto.timingSafeEqual(
         Buffer.from(expectedSignature),
         Buffer.from(providedSignature)
       );
-    } catch {
+
+      if (!isValid) {
+        console.error("❌ Webhook rejected: Invalid signature");
+      }
+
+      return isValid;
+    } catch (error) {
+      console.error("❌ Webhook verification error:", error);
       return false;
     }
-    */
   },
 
   parseWebhook(payload: unknown): ParsedWebhook | null {
