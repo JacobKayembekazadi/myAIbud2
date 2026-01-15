@@ -89,6 +89,20 @@ export function logError(error: unknown, context?: Record<string, unknown>) {
 }
 
 /**
+ * Log a warning message
+ */
+export function logWarning(message: string, context?: Record<string, unknown>): void {
+  console.warn("[Warning]", message, context);
+}
+
+/**
+ * Log info message
+ */
+export function logInfo(message: string, context?: Record<string, unknown>): void {
+  console.info("[Info]", message, context);
+}
+
+/**
  * Custom error classes for better type safety
  */
 export class UnauthorizedError extends Error {
@@ -117,6 +131,15 @@ export class CreditLimitError extends Error {
     super(message);
     this.name = "CreditLimitError";
   }
+}
+
+/**
+ * Create a standardized error with context
+ */
+export function createError(message: string, code?: string): Error {
+  const error = new Error(message);
+  error.name = code || "AppError";
+  return error;
 }
 
 /**

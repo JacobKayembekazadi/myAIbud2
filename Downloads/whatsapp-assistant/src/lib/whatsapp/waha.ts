@@ -11,9 +11,14 @@ import type {
   ParsedSessionStatus,
 } from "./types";
 
-const WAHA_API_URL = process.env.WAHA_API_URL || "http://localhost:3000";
+// WAHA API Configuration - WAHA_API_URL is required in production
+const WAHA_API_URL = process.env.WAHA_API_URL;
 const WAHA_API_KEY = process.env.WAHA_API_KEY || "";
 const WAHA_WEBHOOK_SECRET = process.env.WAHA_WEBHOOK_SECRET || "";
+
+if (!WAHA_API_URL) {
+  console.error("[WAHA] WAHA_API_URL environment variable is not set!");
+}
 
 async function wahaFetch(
   endpoint: string,
@@ -60,14 +65,14 @@ export const wahaProvider: WhatsAppProvider = {
 
       if (!response.ok) {
         const errorText = await response.text();
-        console.error("WAHA sendText error:", errorText);
+        console.error("[WAHA] sendText error:", errorText);
         return { success: false, error: `Failed to send: ${response.status}` };
       }
 
       const data = await response.json();
       return { success: true, messageId: data.id };
     } catch (error) {
-      console.error("WAHA sendText exception:", error);
+      console.error("[WAHA] sendText exception:", error);
       return {
         success: false,
         error: error instanceof Error ? error.message : "Unknown error",
@@ -104,7 +109,7 @@ export const wahaProvider: WhatsAppProvider = {
       const base64 = buf.toString("base64");
       return { base64: `data:image/png;base64,${base64}` };
     } catch (error) {
-      console.error("WAHA getQRCode exception:", error);
+      console.error("[WAHA] getQRCode exception:", error);
       return {
         error: error instanceof Error ? error.message : "Failed to get QR code",
       };
@@ -145,7 +150,7 @@ export const wahaProvider: WhatsAppProvider = {
 
       if (!response.ok) {
         const errorText = await response.text();
-        console.error("WAHA createInstance error:", errorText);
+        console.error("[WAHA] createInstance error:", errorText);
         return {
           success: false,
           error: `Failed to create instance: ${response.status} - ${errorText}`,
@@ -157,7 +162,7 @@ export const wahaProvider: WhatsAppProvider = {
         instance: { instanceId, name },
       };
     } catch (error) {
-      console.error("WAHA createInstance exception:", error);
+      console.error("[WAHA] createInstance exception:", error);
       return {
         success: false,
         error: error instanceof Error ? error.message : "Unknown error",
@@ -184,7 +189,7 @@ export const wahaProvider: WhatsAppProvider = {
 
       return { success: true };
     } catch (error) {
-      console.error("WAHA deleteInstance exception:", error);
+      console.error("[WAHA] deleteInstance exception:", error);
       return {
         success: false,
         error: error instanceof Error ? error.message : "Unknown error",
@@ -215,7 +220,7 @@ export const wahaProvider: WhatsAppProvider = {
         phoneNumber: data.me?.id?.replace("@c.us", ""),
       };
     } catch (error) {
-      console.error("WAHA getInstanceStatus exception:", error);
+      console.error("[WAHA] getInstanceStatus exception:", error);
       return null;
     }
   },
@@ -226,7 +231,7 @@ export const wahaProvider: WhatsAppProvider = {
       const response = await wahaFetch(`/api/${instanceId}/chats`);
 
       if (!response.ok) {
-        console.error("WAHA getChats error:", response.status);
+        console.error("[WAHA] getChats error:", response.status);
         return [];
       }
 
@@ -246,7 +251,7 @@ export const wahaProvider: WhatsAppProvider = {
         };
       }).filter((chat: { id: string }) => !chat.id.includes("@g.us")); // Filter out groups
     } catch (error) {
-      console.error("WAHA getChats exception:", error);
+      console.error("[WAHA] getChats exception:", error);
       return [];
     }
   },
@@ -276,6 +281,12 @@ export const wahaProvider: WhatsAppProvider = {
 
       // Support both formats: raw hex and "sha256=hex"
       const providedSignature = signature.replace("sha256=", "");
+
+      // Ensure both buffers are the same length for timingSafeEqual
+      if (expectedSignature.length !== providedSignature.length) {
+        console.error("[Security] Webhook signature length mismatch");
+        return false;
+      }
 
       const isValid = crypto.timingSafeEqual(
         Buffer.from(expectedSignature),
@@ -331,7 +342,7 @@ export const wahaProvider: WhatsAppProvider = {
         },
       };
     } catch (error) {
-      console.error("WAHA parseWebhook error:", error);
+      console.error("[WAHA] parseWebhook error:", error);
       return null;
     }
   },
@@ -364,9 +375,8 @@ export const wahaProvider: WhatsAppProvider = {
         mappedStatus,
       };
     } catch (error) {
-      console.error("WAHA parseSessionStatus error:", error);
+      console.error("[WAHA] parseSessionStatus error:", error);
       return null;
     }
   },
 };
-

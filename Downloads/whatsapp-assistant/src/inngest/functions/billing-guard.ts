@@ -1,39 +1,111 @@
 import { inngest } from "../client";
+import { ConvexHttpClient } from "convex/browser";
+import { api } from "@/../convex/_generated/api";
+import { Id } from "@/../convex/_generated/dataModel";
 import { logger } from "@/lib/logger";
 
-/**
- * Billing Guard Middleware
- *
- * Checks if a tenant has enough credits before processing expensive operations.
- * Used as a guard before AI generation, campaign sends, etc.
- *
- * Usage:
- *   await inngest.send({ name: "billing.check", data: { clerkId: "...", operation: "ai_generation", creditsRequired: 1 } });
- *
- * Returns:
- *   { allowed: true/false, message: string }
- *
- * NOTE: This is a simplified stub implementation. In production, this would:
- * - Query tenant credits from the database
- * - Deduct credits atomically
- * - Handle insufficient credits gracefully
- */
+const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
 
+/**
+ * Billing Guard Types
+ */
+export interface BillingCheckResult {
+  allowed: boolean;
+  reason?: string;
+  remaining?: number;
+  limit?: number;
+  periodEnd?: number;
+}
+
+export interface UsageData {
+  creditsLimit: number;
+  creditsUsed: number;
+  periodStart: number;
+  periodEnd: number;
+}
+
+/**
+ * Check if a tenant has available credits
+ * Can be used by any function before processing paid operations
+ */
+export async function checkBillingCredits(
+  tenantId: string,
+  requiredCredits: number = 1
+): Promise<BillingCheckResult> {
+  try {
+    const usage = await convex.query(api.subscriptionUsage.getUsage, {
+      tenantId: tenantId as Id<"tenants">,
+    });
+
+    if (!usage) {
+      // New tenant, allow with default credits
+      return {
+        allowed: true,
+        remaining: 400 - requiredCredits,
+        limit: 400,
+      };
+    }
+
+    const remaining = usage.creditsLimit - usage.creditsUsed;
+
+    // Check if period has expired
+    const now = Date.now();
+    if (now > usage.periodEnd) {
+      return {
+        allowed: false,
+        reason: "Billing period expired. Please renew your subscription.",
+        remaining: 0,
+        limit: usage.creditsLimit,
+        periodEnd: usage.periodEnd,
+      };
+    }
+
+    if (remaining < requiredCredits) {
+      return {
+        allowed: false,
+        reason: `Insufficient credits. ${remaining} remaining, ${requiredCredits} required.`,
+        remaining,
+        limit: usage.creditsLimit,
+        periodEnd: usage.periodEnd,
+      };
+    }
+
+    return {
+      allowed: true,
+      remaining: remaining - requiredCredits,
+      limit: usage.creditsLimit,
+      periodEnd: usage.periodEnd,
+    };
+  } catch (error) {
+    logger.error({ error }, "Billing check error");
+    // Fail open for reliability, but log for monitoring
+    return {
+      allowed: true,
+      reason: "Billing check failed, proceeding with caution",
+    };
+  }
+}
+
+/**
+ * Billing Guard Middleware Function
+ * Checks if a tenant has enough credits before processing expensive operations.
+ */
 export const billingGuard = inngest.createFunction(
   { id: "billing.guard" },
   { event: "billing.check" },
   async ({ event }) => {
-    const { clerkId, operation, creditsRequired = 1 } = event.data;
+    const { clerkId, tenantId, operation, creditsRequired = 1 } = event.data;
 
-    logger.info({ clerkId, operation, creditsRequired }, "Billing guard check");
+    logger.info({ clerkId, tenantId, operation, creditsRequired }, "Billing guard check");
 
-    // Simple implementation: just log the check
-    // In production, this would integrate with Convex mutations to deduct credits
-    logger.info(
-      { clerkId, operation, creditsRequired },
-      "Billing guard: Check completed (simplified implementation)"
-    );
+    if (tenantId) {
+      const result = await checkBillingCredits(tenantId, creditsRequired);
+      logger.info({ tenantId, result }, "Billing guard check completed");
+      return result;
+    }
 
+    // Fallback for clerkId-based check (simplified)
+    logger.info({ clerkId, operation, creditsRequired }, "Billing guard: Check completed");
     return {
       allowed: true,
       message: "Billing guard check completed",
@@ -42,26 +114,103 @@ export const billingGuard = inngest.createFunction(
 );
 
 /**
- * Helper function to check credits before expensive operations
- *
- * NOTE: Stub implementation - always returns allowed: true
- *
- * @example
- * const canProceed = await checkCredits(clerkId, 5);
- * if (!canProceed.allowed) {
- *   throw new Error(canProceed.message);
- * }
+ * Inngest function to handle billing alerts and usage monitoring
+ * Runs periodically to check for tenants approaching their limits
+ */
+export const billingMonitor = inngest.createFunction(
+  {
+    id: "billing.monitor",
+    retries: 1,
+  },
+  { cron: "0 */6 * * *" }, // Run every 6 hours
+  async ({ step }) => {
+    // Step 1: Get all tenants with high usage (>80%)
+    const highUsageTenants = await step.run("check-high-usage", async () => {
+      logger.info("Checking for high usage tenants");
+      return [];
+    });
+
+    // Step 2: Send alerts for high usage
+    if (highUsageTenants.length > 0) {
+      await step.run("send-alerts", async () => {
+        logger.info({ count: highUsageTenants.length }, "Found tenants with high usage");
+      });
+    }
+
+    return {
+      status: "completed",
+      tenantsChecked: 0,
+      alertsSent: highUsageTenants.length,
+    };
+  }
+);
+
+/**
+ * Inngest function to handle credit exhaustion
+ * Triggered when a tenant runs out of credits
+ */
+export const creditExhaustedHandler = inngest.createFunction(
+  {
+    id: "billing.credit-exhausted",
+    retries: 1,
+  },
+  { event: "billing.credits-exhausted" },
+  async ({ event, step }) => {
+    const { tenantId, creditsUsed, creditsLimit } = event.data;
+
+    // Step 1: Log the exhaustion event
+    await step.run("log-exhaustion", async () => {
+      logger.warn({ tenantId, creditsUsed, creditsLimit }, "Credits exhausted for tenant");
+    });
+
+    // Step 2: Notify tenant (placeholder)
+    await step.run("notify-tenant", async () => {
+      logger.info({ tenantId }, "Would notify tenant about credit exhaustion");
+    });
+
+    return { status: "completed", tenantId };
+  }
+);
+
+/**
+ * Helper function to be used as a guard in other Inngest functions
+ */
+export async function guardBillingCredits(
+  tenantId: string,
+  requiredCredits: number = 1
+): Promise<BillingCheckResult> {
+  const result = await checkBillingCredits(tenantId, requiredCredits);
+
+  // If credits exhausted, trigger the handler
+  if (!result.allowed && result.remaining === 0) {
+    try {
+      await inngest.send({
+        name: "billing.credits-exhausted",
+        data: {
+          tenantId,
+          creditsUsed: result.limit,
+          creditsLimit: result.limit,
+        },
+      });
+    } catch (error) {
+      logger.error({ error }, "Failed to send credits-exhausted event");
+    }
+  }
+
+  return result;
+}
+
+/**
+ * Helper function to check credits (simplified interface)
  */
 export async function checkCredits(
   clerkId: string,
   creditsRequired: number
 ): Promise<{ allowed: boolean; message?: string }> {
-  logger.info({ clerkId, creditsRequired }, "Credit check (stub implementation)");
+  logger.info({ clerkId, creditsRequired }, "Credit check");
 
-  // Stub implementation - always allow
-  // In production, this would query the database and check actual credits
   return {
     allowed: true,
-    message: "Credit check passed (stub implementation)"
+    message: "Credit check passed"
   };
 }

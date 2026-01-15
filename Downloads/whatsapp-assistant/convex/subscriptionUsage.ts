@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
+import { BILLING_CONFIG, SUBSCRIPTION_TIERS } from "./config";
 
 export const getUsage = query({
   args: { tenantId: v.id("tenants") },
@@ -20,7 +21,7 @@ export const checkCredits = query({
       .first();
 
     if (!usage) {
-      return { hasCredits: true, remaining: 400 };
+      return { hasCredits: true, remaining: BILLING_CONFIG.defaultCredits };
     }
 
     const remaining = usage.creditsLimit - usage.creditsUsed;
@@ -38,10 +39,10 @@ export const decrementCredits = mutation({
 
     if (!usage) {
       const now = Date.now();
-      const periodEnd = now + 30 * 24 * 60 * 60 * 1000;
+      const periodEnd = now + BILLING_CONFIG.periodDurationMs;
       return await ctx.db.insert("subscriptionUsage", {
         tenantId: args.tenantId,
-        creditsLimit: 400,
+        creditsLimit: BILLING_CONFIG.defaultCredits,
         creditsUsed: args.amount ?? 1,
         periodStart: now,
         periodEnd,
@@ -68,10 +69,10 @@ export const initializeUsage = mutation({
     if (existing) return existing._id;
 
     const now = Date.now();
-    const periodEnd = now + 30 * 24 * 60 * 60 * 1000;
+    const periodEnd = now + BILLING_CONFIG.periodDurationMs;
     return await ctx.db.insert("subscriptionUsage", {
       tenantId: args.tenantId,
-      creditsLimit: 400,
+      creditsLimit: BILLING_CONFIG.defaultCredits,
       creditsUsed: 0,
       periodStart: now,
       periodEnd,

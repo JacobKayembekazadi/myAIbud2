@@ -4,7 +4,7 @@ import { inngest } from "@/inngest/client";
 import { messageAgent } from "@/inngest/agent";
 import { campaignSender } from "@/inngest/functions/campaign-sender";
 import { sendInviteEmail } from "@/inngest/functions/send-invite-email";
-import { billingGuard } from "@/inngest/functions/billing-guard";
+import { billingGuard, billingMonitor, creditExhaustedHandler } from "@/inngest/functions/billing-guard";
 import { visionEstimator } from "@/inngest/functions/vision-estimator";
 import { inngestRateLimiter, getRateLimitIdentifier } from "@/lib/ratelimit";
 import { logSecurity } from "@/lib/logger";
@@ -12,7 +12,15 @@ import { logSecurity } from "@/lib/logger";
 // Create base handlers from Inngest
 const baseHandlers = serve({
     client: inngest,
-    functions: [messageAgent, campaignSender, sendInviteEmail, billingGuard, visionEstimator],
+    functions: [
+        messageAgent,
+        campaignSender,
+        sendInviteEmail,
+        billingGuard,
+        billingMonitor,
+        creditExhaustedHandler,
+        visionEstimator,
+    ],
 });
 
 // Wrap handlers with rate limiting middleware

@@ -1,4 +1,4 @@
-﻿import { NextRequest, NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { ConvexHttpClient } from "convex/browser";
 import { api } from "@/../convex/_generated/api";
 import { inngest } from "@/inngest/client";
@@ -55,7 +55,7 @@ export async function POST(request: NextRequest) {
 
     // Handle message events
     const parsed = whatsapp.parseWebhook(payload);
-    
+
     if (!parsed || parsed.data.fromMe) {
       logger.debug({ fromMe: parsed?.data?.fromMe }, "Webhook ignored");
       return NextResponse.json({ status: "ignored" });
