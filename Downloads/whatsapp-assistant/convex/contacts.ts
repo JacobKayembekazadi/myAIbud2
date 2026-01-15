@@ -162,18 +162,54 @@ export const updateContact = mutation({
     tags: v.optional(v.array(v.string())),
     notes: v.optional(v.string()),
     status: v.optional(v.string()),
+    aiEnabled: v.optional(v.boolean()),
+    isPersonal: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
     const { contactId, ...updates } = args;
     const filteredUpdates: Record<string, unknown> = { updatedAt: Date.now() };
-    
+
     if (updates.name !== undefined) filteredUpdates.name = updates.name;
     if (updates.tags !== undefined) filteredUpdates.tags = updates.tags;
     if (updates.notes !== undefined) filteredUpdates.notes = updates.notes;
     if (updates.status !== undefined) filteredUpdates.status = updates.status;
-    
+    if (updates.aiEnabled !== undefined) filteredUpdates.aiEnabled = updates.aiEnabled;
+    if (updates.isPersonal !== undefined) filteredUpdates.isPersonal = updates.isPersonal;
+
     await ctx.db.patch(contactId, filteredUpdates);
     return contactId;
+  },
+});
+
+// Toggle AI enabled for a contact
+export const toggleContactAI = mutation({
+  args: { contactId: v.id("contacts") },
+  handler: async (ctx, args) => {
+    const contact = await ctx.db.get(args.contactId);
+    if (!contact) throw new Error("Contact not found");
+
+    const newValue = contact.aiEnabled === false ? true : false;
+    await ctx.db.patch(args.contactId, {
+      aiEnabled: newValue,
+      updatedAt: Date.now(),
+    });
+    return newValue;
+  },
+});
+
+// Mark contact as personal (AI won't respond)
+export const toggleContactPersonal = mutation({
+  args: { contactId: v.id("contacts") },
+  handler: async (ctx, args) => {
+    const contact = await ctx.db.get(args.contactId);
+    if (!contact) throw new Error("Contact not found");
+
+    const newValue = !contact.isPersonal;
+    await ctx.db.patch(args.contactId, {
+      isPersonal: newValue,
+      updatedAt: Date.now(),
+    });
+    return newValue;
   },
 });
 

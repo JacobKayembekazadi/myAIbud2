@@ -97,6 +97,9 @@ export default defineSchema({
     // Lead scoring fields
     leadScore: v.optional(v.number()), // 0-100 score
     leadGrade: v.optional(v.string()), // A, B, C, D, F
+    // AI Control fields
+    aiEnabled: v.optional(v.boolean()), // Default true - AI can respond to this contact
+    isPersonal: v.optional(v.boolean()), // Mark as personal contact (AI won't respond)
     // Team assignment fields
     assignedTo: v.optional(v.id("teamMembers")), // Agent assigned to this contact
     assignedBy: v.optional(v.id("teamMembers")), // Who made the assignment
@@ -177,6 +180,32 @@ export default defineSchema({
     aiMaxTokens: v.number(),
     emailNotifications: v.boolean(),
     smsNotifications: v.boolean(),
+    // Business Profile Settings
+    businessName: v.optional(v.string()), // e.g., "ABC Realty"
+    industry: v.optional(v.string()), // e.g., "real_estate", "automotive", "general"
+    businessDescription: v.optional(v.string()), // What the business does
+    servicesOffered: v.optional(v.array(v.string())), // List of services
+    businessLocation: v.optional(v.string()), // e.g., "Cape Town, South Africa"
+    aiPersonality: v.optional(v.string()), // e.g., "professional", "friendly", "casual"
+    customSystemPrompt: v.optional(v.string()), // Advanced: fully custom prompt
+    useQuickRepliesAsKnowledge: v.optional(v.boolean()), // Use quick replies as AI knowledge base
+    // Agent Activation Settings
+    agentActivationMode: v.optional(
+      v.union(
+        v.literal("always_on"),
+        v.literal("keyword_triggered"),
+        v.literal("new_contacts_only"),
+        v.literal("business_hours")
+      )
+    ), // Default: "always_on"
+    activationKeywords: v.optional(v.array(v.string())), // Keywords that trigger AI response
+    fallbackMessage: v.optional(v.string()), // Message when AI doesn't activate
+    sendFallbackWhenInactive: v.optional(v.boolean()), // Send fallback when AI skips
+    // Business Hours Settings (for "business_hours" mode)
+    businessHoursStart: v.optional(v.number()), // Hour 0-23
+    businessHoursEnd: v.optional(v.number()), // Hour 0-23
+    businessDays: v.optional(v.array(v.number())), // 0=Sun, 1=Mon, etc.
+    businessTimezone: v.optional(v.string()), // e.g., "Africa/Johannesburg"
     updatedAt: v.number(),
   })
     .index("by_tenant", ["tenantId"])
