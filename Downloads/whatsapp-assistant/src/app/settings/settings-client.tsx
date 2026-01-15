@@ -15,7 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { User, Bot, Bell, Zap, Trash2, Plus, Loader2, Users } from "lucide-react";
+import { User, Bot, Bell, Zap, Trash2, Plus, Loader2, Users, Sparkles, Clock, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import TeamUpgradeWizard from "@/components/onboarding/TeamUpgradeWizard";
 
@@ -36,6 +36,7 @@ export function SettingsClient() {
     const [newReply, setNewReply] = useState({ label: "", content: "", category: "" });
     const [saving, setSaving] = useState(false);
     const [upgradeDialogOpen, setUpgradeDialogOpen] = useState(false);
+    const [newKeyword, setNewKeyword] = useState("");
 
     const isSoloAccount = !tenant?.organizationId || tenant?.accountType !== "team";
 
@@ -79,6 +80,35 @@ export function SettingsClient() {
         }
     };
 
+    const handleAddKeyword = () => {
+        if (!newKeyword.trim()) return;
+        const currentKeywords = settings?.activationKeywords || [];
+        if (currentKeywords.includes(newKeyword.trim().toLowerCase())) {
+            toast.error("Keyword already exists");
+            return;
+        }
+        handleUpdateSettings({
+            activationKeywords: [...currentKeywords, newKeyword.trim().toLowerCase()]
+        });
+        setNewKeyword("");
+    };
+
+    const handleRemoveKeyword = (keyword: string) => {
+        const currentKeywords = settings?.activationKeywords || [];
+        handleUpdateSettings({
+            activationKeywords: currentKeywords.filter((k: string) => k !== keyword)
+        });
+    };
+
+    const handleToggleDay = (day: number) => {
+        const currentDays = settings?.businessDays || [1, 2, 3, 4, 5];
+        if (currentDays.includes(day)) {
+            handleUpdateSettings({ businessDays: currentDays.filter((d: number) => d !== day) });
+        } else {
+            handleUpdateSettings({ businessDays: [...currentDays, day].sort() });
+        }
+    };
+
     if (!tenant || !settings) {
         return (
             <div className="flex items-center justify-center h-64">
@@ -93,7 +123,7 @@ export function SettingsClient() {
 
     return (
         <Tabs defaultValue="profile" className="space-y-6">
-            <TabsList className="bg-gray-900 border border-gray-800">
+            <TabsList className="bg-gray-900 border border-gray-800 flex-wrap">
                 <TabsTrigger value="profile" className="data-[state=active]:bg-green-600/20 data-[state=active]:text-green-400">
                     <User className="w-4 h-4 mr-2" />
                     Profile
@@ -101,6 +131,10 @@ export function SettingsClient() {
                 <TabsTrigger value="ai" className="data-[state=active]:bg-green-600/20 data-[state=active]:text-green-400">
                     <Bot className="w-4 h-4 mr-2" />
                     AI Config
+                </TabsTrigger>
+                <TabsTrigger value="agent-activation" className="data-[state=active]:bg-green-600/20 data-[state=active]:text-green-400">
+                    <Sparkles className="w-4 h-4 mr-2" />
+                    Agent Activation
                 </TabsTrigger>
                 <TabsTrigger value="notifications" className="data-[state=active]:bg-green-600/20 data-[state=active]:text-green-400">
                     <Bell className="w-4 h-4 mr-2" />
@@ -239,6 +273,211 @@ export function SettingsClient() {
                                 </Select>
                             </div>
                         )}
+                    </CardContent>
+                </Card>
+            </TabsContent>
+
+            {/* Agent Activation Tab */}
+            <TabsContent value="agent-activation" className="space-y-6">
+                <Card className="bg-gray-900/50 border-gray-800">
+                    <CardHeader>
+                        <CardTitle className="text-white">Agent Activation Mode</CardTitle>
+                        <CardDescription>
+                            Control when the AI agent responds to messages. Perfect for personal numbers or selective automation.
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-6">
+                        {/* Activation Mode Selector */}
+                        <div className="space-y-3">
+                            <Label className="text-gray-300">When should the AI respond?</Label>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                {[
+                                    { value: "always_on", label: "Always On", desc: "AI responds to all messages (best for business lines)" },
+                                    { value: "keyword_triggered", label: "Keyword Triggered", desc: "AI only responds when specific keywords are detected" },
+                                    { value: "new_contacts_only", label: "New Contacts Only", desc: "AI only responds to unknown/new contacts" },
+                                    { value: "business_hours", label: "Business Hours", desc: "AI only responds during set business hours" },
+                                ].map((mode) => (
+                                    <div
+                                        key={mode.value}
+                                        onClick={() => handleUpdateSettings({ agentActivationMode: mode.value })}
+                                        className={`p-4 rounded-lg border cursor-pointer transition-all ${
+                                            settings.agentActivationMode === mode.value
+                                                ? "border-emerald-500 bg-emerald-500/10"
+                                                : "border-gray-700 bg-gray-800/30 hover:border-gray-600"
+                                        }`}
+                                    >
+                                        <div className="flex items-center gap-2 mb-1">
+                                            <div className={`w-3 h-3 rounded-full ${
+                                                settings.agentActivationMode === mode.value
+                                                    ? "bg-emerald-500"
+                                                    : "bg-gray-600"
+                                            }`} />
+                                            <span className="font-medium text-white">{mode.label}</span>
+                                        </div>
+                                        <p className="text-xs text-gray-400 ml-5">{mode.desc}</p>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+
+                        <Separator className="bg-gray-800" />
+
+                        {/* Keyword Settings - shown when keyword_triggered is selected */}
+                        {settings.agentActivationMode === "keyword_triggered" && (
+                            <div className="space-y-4 p-4 bg-gray-800/30 rounded-lg border border-gray-700">
+                                <div className="flex items-center gap-2">
+                                    <Sparkles className="w-5 h-5 text-emerald-400" />
+                                    <Label className="text-gray-300 font-medium">Activation Keywords</Label>
+                                </div>
+                                <p className="text-sm text-gray-500">
+                                    The AI will only respond when a message contains one of these keywords (case-insensitive).
+                                </p>
+
+                                {/* Keyword Input */}
+                                <div className="flex gap-2">
+                                    <Input
+                                        placeholder="Add a keyword..."
+                                        value={newKeyword}
+                                        onChange={(e) => setNewKeyword(e.target.value)}
+                                        onKeyPress={(e) => e.key === "Enter" && handleAddKeyword()}
+                                        className="bg-gray-800/50 border-gray-700 text-white"
+                                    />
+                                    <Button onClick={handleAddKeyword} className="bg-emerald-600 hover:bg-emerald-700">
+                                        <Plus className="w-4 h-4" />
+                                    </Button>
+                                </div>
+
+                                {/* Keyword Tags */}
+                                <div className="flex flex-wrap gap-2">
+                                    {(settings.activationKeywords || []).map((keyword: string) => (
+                                        <Badge
+                                            key={keyword}
+                                            variant="secondary"
+                                            className="bg-gray-700 text-white px-3 py-1 flex items-center gap-1"
+                                        >
+                                            {keyword}
+                                            <X
+                                                className="w-3 h-3 cursor-pointer hover:text-red-400"
+                                                onClick={() => handleRemoveKeyword(keyword)}
+                                            />
+                                        </Badge>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Business Hours Settings - shown when business_hours is selected */}
+                        {settings.agentActivationMode === "business_hours" && (
+                            <div className="space-y-4 p-4 bg-gray-800/30 rounded-lg border border-gray-700">
+                                <div className="flex items-center gap-2">
+                                    <Clock className="w-5 h-5 text-emerald-400" />
+                                    <Label className="text-gray-300 font-medium">Business Hours</Label>
+                                </div>
+                                <p className="text-sm text-gray-500">
+                                    Set when the AI is active. Outside these hours, you can send a fallback message.
+                                </p>
+
+                                {/* Time Range */}
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="space-y-2">
+                                        <Label className="text-gray-400 text-sm">Start Time</Label>
+                                        <Select
+                                            value={String(settings.businessHoursStart ?? 8)}
+                                            onValueChange={(value) => handleUpdateSettings({ businessHoursStart: parseInt(value) })}
+                                        >
+                                            <SelectTrigger className="bg-gray-800/50 border-gray-700 text-white">
+                                                <SelectValue />
+                                            </SelectTrigger>
+                                            <SelectContent className="bg-gray-900 border-gray-800">
+                                                {Array.from({ length: 24 }, (_, i) => (
+                                                    <SelectItem key={i} value={String(i)}>
+                                                        {i.toString().padStart(2, "0")}:00
+                                                    </SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label className="text-gray-400 text-sm">End Time</Label>
+                                        <Select
+                                            value={String(settings.businessHoursEnd ?? 18)}
+                                            onValueChange={(value) => handleUpdateSettings({ businessHoursEnd: parseInt(value) })}
+                                        >
+                                            <SelectTrigger className="bg-gray-800/50 border-gray-700 text-white">
+                                                <SelectValue />
+                                            </SelectTrigger>
+                                            <SelectContent className="bg-gray-900 border-gray-800">
+                                                {Array.from({ length: 24 }, (_, i) => (
+                                                    <SelectItem key={i} value={String(i)}>
+                                                        {i.toString().padStart(2, "0")}:00
+                                                    </SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                </div>
+
+                                {/* Days of Week */}
+                                <div className="space-y-2">
+                                    <Label className="text-gray-400 text-sm">Active Days</Label>
+                                    <div className="flex gap-2">
+                                        {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day, index) => (
+                                            <button
+                                                key={day}
+                                                onClick={() => handleToggleDay(index)}
+                                                className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                                                    (settings.businessDays || [1, 2, 3, 4, 5]).includes(index)
+                                                        ? "bg-emerald-600 text-white"
+                                                        : "bg-gray-700 text-gray-400 hover:bg-gray-600"
+                                                }`}
+                                            >
+                                                {day}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        <Separator className="bg-gray-800" />
+
+                        {/* Fallback Message Settings */}
+                        <div className="space-y-4">
+                            <div className="flex items-center justify-between">
+                                <div className="space-y-0.5">
+                                    <Label className="text-gray-300">Send Fallback Message</Label>
+                                    <p className="text-sm text-gray-500">
+                                        When AI doesn't activate, send an optional message to let them know
+                                    </p>
+                                </div>
+                                <Switch
+                                    checked={settings.sendFallbackWhenInactive ?? false}
+                                    onCheckedChange={(checked) => handleUpdateSettings({ sendFallbackWhenInactive: checked })}
+                                />
+                            </div>
+
+                            {settings.sendFallbackWhenInactive && (
+                                <Textarea
+                                    placeholder="e.g., Hi! Type 'help' to speak with our AI assistant, or wait for a human response."
+                                    value={settings.fallbackMessage || ""}
+                                    onChange={(e) => handleUpdateSettings({ fallbackMessage: e.target.value })}
+                                    className="bg-gray-800/50 border-gray-700 text-white min-h-20"
+                                />
+                            )}
+                        </div>
+                    </CardContent>
+                </Card>
+
+                {/* Helpful Tips Card */}
+                <Card className="bg-emerald-950/30 border-emerald-800/50">
+                    <CardContent className="p-4">
+                        <h4 className="text-emerald-400 font-medium mb-2">Which mode should I use?</h4>
+                        <ul className="text-sm text-gray-400 space-y-1">
+                            <li>• <strong className="text-white">Always On:</strong> Best for dedicated business WhatsApp numbers</li>
+                            <li>• <strong className="text-white">Keyword Triggered:</strong> Perfect for personal numbers where you want AI for specific inquiries</li>
+                            <li>• <strong className="text-white">New Contacts Only:</strong> Great for lead qualification without bothering existing contacts</li>
+                            <li>• <strong className="text-white">Business Hours:</strong> Ideal when you want human-only support outside work hours</li>
+                        </ul>
                     </CardContent>
                 </Card>
             </TabsContent>

@@ -1,6 +1,12 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 
+// Default activation keywords for new users
+const DEFAULT_ACTIVATION_KEYWORDS = [
+    "help", "hi", "hello", "info", "inquiry", "property",
+    "price", "available", "interested", "assistant", "AI", "bot"
+];
+
 // Get settings for a tenant
 export const getSettings = query({
     args: { tenantId: v.id("tenants") },
@@ -20,10 +26,30 @@ export const getSettings = query({
                 emailNotifications: true,
                 smsNotifications: false,
                 defaultInstanceId: undefined,
+                // Agent activation defaults
+                agentActivationMode: "always_on" as const,
+                activationKeywords: DEFAULT_ACTIVATION_KEYWORDS,
+                fallbackMessage: "Hi! I'm currently not available. Type 'help' to speak with our AI assistant.",
+                sendFallbackWhenInactive: false,
+                businessHoursStart: 8,
+                businessHoursEnd: 18,
+                businessDays: [1, 2, 3, 4, 5], // Mon-Fri
+                businessTimezone: "Africa/Johannesburg",
             };
         }
 
-        return settings;
+        // Merge with defaults for missing fields
+        return {
+            ...settings,
+            agentActivationMode: settings.agentActivationMode ?? "always_on",
+            activationKeywords: settings.activationKeywords ?? DEFAULT_ACTIVATION_KEYWORDS,
+            fallbackMessage: settings.fallbackMessage ?? "Hi! I'm currently not available. Type 'help' to speak with our AI assistant.",
+            sendFallbackWhenInactive: settings.sendFallbackWhenInactive ?? false,
+            businessHoursStart: settings.businessHoursStart ?? 8,
+            businessHoursEnd: settings.businessHoursEnd ?? 18,
+            businessDays: settings.businessDays ?? [1, 2, 3, 4, 5],
+            businessTimezone: settings.businessTimezone ?? "Africa/Johannesburg",
+        };
     },
 });
 
@@ -38,6 +64,22 @@ export const updateSettings = mutation({
         aiMaxTokens: v.optional(v.number()),
         emailNotifications: v.optional(v.boolean()),
         smsNotifications: v.optional(v.boolean()),
+        // Agent activation settings
+        agentActivationMode: v.optional(
+            v.union(
+                v.literal("always_on"),
+                v.literal("keyword_triggered"),
+                v.literal("new_contacts_only"),
+                v.literal("business_hours")
+            )
+        ),
+        activationKeywords: v.optional(v.array(v.string())),
+        fallbackMessage: v.optional(v.string()),
+        sendFallbackWhenInactive: v.optional(v.boolean()),
+        businessHoursStart: v.optional(v.number()),
+        businessHoursEnd: v.optional(v.number()),
+        businessDays: v.optional(v.array(v.number())),
+        businessTimezone: v.optional(v.string()),
     },
     handler: async (ctx, args) => {
         const { tenantId, ...updates } = args;
@@ -63,6 +105,15 @@ export const updateSettings = mutation({
                 emailNotifications: updates.emailNotifications ?? true,
                 smsNotifications: updates.smsNotifications ?? false,
                 defaultInstanceId: updates.defaultInstanceId,
+                // Agent activation defaults
+                agentActivationMode: updates.agentActivationMode ?? "always_on",
+                activationKeywords: updates.activationKeywords ?? DEFAULT_ACTIVATION_KEYWORDS,
+                fallbackMessage: updates.fallbackMessage,
+                sendFallbackWhenInactive: updates.sendFallbackWhenInactive ?? false,
+                businessHoursStart: updates.businessHoursStart ?? 8,
+                businessHoursEnd: updates.businessHoursEnd ?? 18,
+                businessDays: updates.businessDays ?? [1, 2, 3, 4, 5],
+                businessTimezone: updates.businessTimezone ?? "Africa/Johannesburg",
                 updatedAt: Date.now(),
             });
         }

@@ -16,6 +16,7 @@ import { X, CheckCircle2 } from "lucide-react";
 import { WelcomeStep } from "./steps/WelcomeStep";
 import { CreateInstanceStep } from "./steps/CreateInstanceStep";
 import { ScanQRStep } from "./steps/ScanQRStep";
+import { ConfigureAgentStep } from "./steps/ConfigureAgentStep";
 import { TestAIStep } from "./steps/TestAIStep";
 
 interface SetupWizardProps {
@@ -29,7 +30,8 @@ const STEPS = [
   { id: 0, title: "Welcome", description: "Get started with MyChatFlow" },
   { id: 1, title: "Create Instance", description: "Set up your WhatsApp instance" },
   { id: 2, title: "Connect WhatsApp", description: "Scan QR code to link" },
-  { id: 3, title: "Test AI", description: "Try your AI assistant" },
+  { id: 3, title: "Configure AI", description: "Choose when AI responds" },
+  { id: 4, title: "Test AI", description: "Try your AI assistant" },
 ];
 
 export function SetupWizard({
@@ -57,7 +59,7 @@ export function SetupWizard({
       setCurrentStep(2);
     }
     if (connectedInstance && currentStep === 2) {
-      setCurrentStep(3);
+      setCurrentStep(3); // Move to Configure AI step
     }
   }, [instances, connectedInstance, currentStep]);
 
@@ -112,6 +114,14 @@ export function SetupWizard({
           />
         );
       case 3:
+        return (
+          <ConfigureAgentStep
+            tenantId={tenantId}
+            onNext={handleNext}
+            onSkip={handleNext}
+          />
+        );
+      case 4:
         return (
           <TestAIStep
             tenantId={tenantId}
