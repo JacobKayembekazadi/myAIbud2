@@ -38,6 +38,8 @@ export function SettingsClient() {
     const [upgradeDialogOpen, setUpgradeDialogOpen] = useState(false);
     const [newKeyword, setNewKeyword] = useState("");
     const [newService, setNewService] = useState("");
+    const [magicDescription, setMagicDescription] = useState("");
+    const [magicLoading, setMagicLoading] = useState(false);
 
     const isSoloAccount = !tenant?.organizationId || tenant?.accountType !== "team";
 
@@ -130,6 +132,80 @@ export function SettingsClient() {
         });
     };
 
+    // Magic Setup - parse business description and auto-fill fields
+    const handleMagicSetup = async () => {
+        if (!magicDescription.trim() || !tenant) return;
+
+        setMagicLoading(true);
+
+        // Smart parsing of the description
+        const desc = magicDescription.toLowerCase();
+
+        // Detect industry from keywords
+        let industry = "general";
+        let personality = "professional";
+        const services: string[] = [];
+
+        if (desc.includes("property") || desc.includes("real estate") || desc.includes("houses") || desc.includes("rental") || desc.includes("apartment")) {
+            industry = "real_estate";
+            services.push("Property Sales", "Rentals", "Valuations");
+        } else if (desc.includes("car") || desc.includes("vehicle") || desc.includes("auto") || desc.includes("dealership")) {
+            industry = "automotive";
+            personality = "friendly";
+            services.push("Vehicle Sales", "Test Drives", "Financing");
+        } else if (desc.includes("shop") || desc.includes("store") || desc.includes("products") || desc.includes("retail") || desc.includes("sell")) {
+            industry = "retail";
+            personality = "friendly";
+            services.push("Product Sales", "Deliveries", "Orders");
+        } else if (desc.includes("hotel") || desc.includes("resort") || desc.includes("booking") || desc.includes("accommodation") || desc.includes("tourism")) {
+            industry = "hospitality";
+            personality = "friendly";
+            services.push("Bookings", "Room Service", "Events");
+        } else if (desc.includes("doctor") || desc.includes("clinic") || desc.includes("medical") || desc.includes("health") || desc.includes("patient")) {
+            industry = "healthcare";
+            services.push("Appointments", "Consultations", "Referrals");
+        } else if (desc.includes("lawyer") || desc.includes("legal") || desc.includes("accountant") || desc.includes("consulting") || desc.includes("professional")) {
+            industry = "professional_services";
+            services.push("Consultations", "Quotations", "Appointments");
+        }
+
+        // Extract business name (look for patterns like "we are X" or "at X" or company-like names)
+        let businessName = "";
+        const namePatterns = [
+            /(?:we are|i am|this is|welcome to|at)\s+([A-Z][A-Za-z\s&']+?)(?:\.|,|!|\s+and|\s+we|\s+where|$)/i,
+            /^([A-Z][A-Za-z\s&']+?)(?:\s+is|\s+are|\s+-|\s+–)/i,
+        ];
+        for (const pattern of namePatterns) {
+            const match = magicDescription.match(pattern);
+            if (match && match[1]) {
+                businessName = match[1].trim();
+                break;
+            }
+        }
+
+        // Generate keywords from services
+        const keywords = services.map(s => s.toLowerCase().split(" ")[0]);
+        keywords.push("help", "info", "price");
+
+        try {
+            await updateSettings({
+                tenantId: tenant._id,
+                businessDescription: magicDescription,
+                industry,
+                aiPersonality: personality,
+                servicesOffered: services,
+                activationKeywords: keywords,
+                ...(businessName && { businessName }),
+            });
+            toast.success("Magic setup complete! Your AI is configured.");
+            setMagicDescription("");
+        } catch {
+            toast.error("Failed to apply settings");
+        }
+
+        setMagicLoading(false);
+    };
+
     if (!tenant || !settings) {
         return (
             <div className="flex items-center justify-center h-64">
@@ -219,37 +295,85 @@ export function SettingsClient() {
 
             {/* Business Profile Tab */}
             <TabsContent value="business-profile" className="space-y-6">
+                {/* Magic Setup - Describe Your Business */}
+                <Card className="bg-gradient-to-br from-emerald-950/50 to-gray-900/50 border-emerald-800/50">
+                    <CardHeader>
+                        <CardTitle className="text-white flex items-center gap-2">
+                            <Sparkles className="w-5 h-5 text-emerald-400" />
+                            Magic Setup
+                            <Badge variant="outline" className="text-emerald-400 border-emerald-600">Easiest</Badge>
+                        </CardTitle>
+                        <CardDescription>
+                            Just describe your business in one sentence - we'll configure everything automatically
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                        <Textarea
+                            placeholder="e.g., We are Cape Town Realty, a property agency helping people buy and rent homes in the Western Cape area."
+                            value={magicDescription}
+                            onChange={(e) => setMagicDescription(e.target.value)}
+                            className="bg-gray-800/50 border-gray-700 text-white min-h-20"
+                        />
+                        <Button
+                            onClick={handleMagicSetup}
+                            disabled={!magicDescription.trim() || magicLoading}
+                            className="w-full bg-gradient-to-r from-emerald-600 to-green-500 hover:from-emerald-500 hover:to-green-400"
+                        >
+                            {magicLoading ? (
+                                <>
+                                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                    Setting up...
+                                </>
+                            ) : (
+                                <>
+                                    <Sparkles className="w-4 h-4 mr-2" />
+                                    Configure My AI
+                                </>
+                            )}
+                        </Button>
+                        <p className="text-xs text-gray-500 text-center">
+                            We'll detect your industry, services, and configure the AI personality for you
+                        </p>
+                    </CardContent>
+                </Card>
+
+                <div className="flex items-center gap-4">
+                    <Separator className="flex-1 bg-gray-800" />
+                    <span className="text-gray-500 text-sm">or pick a template</span>
+                    <Separator className="flex-1 bg-gray-800" />
+                </div>
+
                 {/* Industry Templates - Quick Setup */}
                 <Card className="bg-gray-900/50 border-gray-800">
                     <CardHeader>
                         <CardTitle className="text-white flex items-center gap-2">
-                            Quick Setup
-                            <Badge variant="outline" className="text-emerald-400 border-emerald-600">Recommended</Badge>
+                            Industry Templates
                         </CardTitle>
                         <CardDescription>
-                            Select your industry to instantly configure AI settings optimized for your business type
+                            One-click setup optimized for your industry
                         </CardDescription>
                     </CardHeader>
                     <CardContent>
                         <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                             {[
-                                { id: "real_estate", label: "Real Estate", icon: Home, services: ["Property Sales", "Rentals", "Valuations", "Property Management"], keywords: ["property", "house", "apartment", "rent", "buy", "sell", "viewing", "price"] },
-                                { id: "automotive", label: "Car Sales", icon: Car, services: ["New Vehicles", "Used Vehicles", "Financing", "Trade-ins", "Test Drives"], keywords: ["car", "vehicle", "price", "test drive", "finance", "trade"] },
-                                { id: "retail", label: "Retail", icon: ShoppingBag, services: ["Product Sales", "Deliveries", "Returns", "Orders"], keywords: ["order", "price", "stock", "delivery", "return", "available"] },
-                                { id: "hospitality", label: "Hospitality", icon: Hotel, services: ["Bookings", "Room Service", "Events", "Tours"], keywords: ["book", "reservation", "room", "available", "price", "check-in"] },
-                                { id: "healthcare", label: "Healthcare", icon: Stethoscope, services: ["Appointments", "Consultations", "Referrals"], keywords: ["appointment", "doctor", "available", "consultation", "prescription"] },
-                                { id: "professional_services", label: "Professional", icon: Scale, services: ["Consultations", "Quotations", "Appointments"], keywords: ["consultation", "quote", "appointment", "service", "price"] },
+                                { id: "real_estate", label: "Real Estate", icon: Home, description: "We help clients buy, sell, and rent properties. Our team provides property valuations, arranges viewings, and guides clients through the entire process.", services: ["Property Sales", "Rentals", "Valuations", "Property Management"], keywords: ["property", "house", "apartment", "rent", "buy", "sell", "viewing", "price"], personality: "professional" },
+                                { id: "automotive", label: "Car Sales", icon: Car, description: "We sell quality new and pre-owned vehicles. Our services include financing options, trade-ins, and test drives.", services: ["New Vehicles", "Used Vehicles", "Financing", "Trade-ins", "Test Drives"], keywords: ["car", "vehicle", "price", "test drive", "finance", "trade"], personality: "friendly" },
+                                { id: "retail", label: "Retail", icon: ShoppingBag, description: "We offer quality products with fast delivery. Customers can browse our catalog, place orders, and track deliveries.", services: ["Product Sales", "Deliveries", "Returns", "Orders"], keywords: ["order", "price", "stock", "delivery", "return", "available"], personality: "friendly" },
+                                { id: "hospitality", label: "Hospitality", icon: Hotel, description: "We provide excellent accommodation and hospitality services. Guests can make reservations, request room service, and arrange tours.", services: ["Bookings", "Room Service", "Events", "Tours"], keywords: ["book", "reservation", "room", "available", "price", "check-in"], personality: "friendly" },
+                                { id: "healthcare", label: "Healthcare", icon: Stethoscope, description: "We provide professional healthcare services. Patients can book appointments and request consultations.", services: ["Appointments", "Consultations", "Referrals"], keywords: ["appointment", "doctor", "available", "consultation", "prescription"], personality: "professional" },
+                                { id: "professional_services", label: "Professional", icon: Scale, description: "We offer professional consulting services. Clients can book consultations and request quotations.", services: ["Consultations", "Quotations", "Appointments"], keywords: ["consultation", "quote", "appointment", "service", "price"], personality: "professional" },
                             ].map((template) => (
                                 <button
                                     key={template.id}
                                     onClick={() => {
                                         handleUpdateSettings({
                                             industry: template.id,
+                                            businessDescription: template.description,
                                             servicesOffered: template.services,
                                             activationKeywords: template.keywords,
-                                            aiPersonality: template.id === "hospitality" ? "friendly" : "professional",
+                                            aiPersonality: template.personality,
                                         });
-                                        toast.success(`Applied ${template.label} template! Review settings below.`);
+                                        toast.success(`${template.label} template applied!`);
                                     }}
                                     className={`p-4 rounded-lg border text-left transition-all hover:border-emerald-500/50 hover:bg-emerald-500/5 ${
                                         settings.industry === template.id
