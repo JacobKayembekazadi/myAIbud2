@@ -238,7 +238,7 @@ export const getContactsNeedingAttention = query({
         const inboundMessages = interactions.filter((i) => i.type === "inbound" && i.content);
 
         if (inboundMessages.length === 0) {
-          return { ...contact, needsAttention: false, reason: null, sentiment: "neutral" };
+          return { ...contact, needsAttention: false, reason: null, sentiment: "neutral", urgency: "low" as const, lastMessage: null, lastMessageAt: null };
         }
 
         // Quick sentiment check on most recent message
