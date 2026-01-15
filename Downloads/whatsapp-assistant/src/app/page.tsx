@@ -665,18 +665,18 @@ function HeroSection() {
       <div className="relative z-10 text-center max-w-4xl mx-auto">
         <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-bold tracking-widest uppercase mb-8">
           <Sparkles className="w-4 h-4" />
-          Built for Real Estate Professionals
+          AI That Works For Any Business
         </div>
 
         <h1 className="text-5xl md:text-7xl font-black tracking-tighter text-white mb-6">
-          Close More Deals <br />
+          Your Business, <br />
           <span className="bg-gradient-to-r from-emerald-400 via-green-400 to-teal-400 bg-clip-text text-transparent">
-            While You Sleep
+            Always Online
           </span>
         </h1>
 
         <p className="text-xl text-gray-400 max-w-2xl mx-auto leading-relaxed mb-10">
-          Stop losing leads to slow response times. MyChatFlow uses AI to instantly engage your WhatsApp contacts, qualify leads, and book appointments—while you focus on closing.
+          Stop losing customers to slow response times. MyChatFlow uses AI to instantly engage your WhatsApp contacts, answer questions, and qualify leads—24/7, while you focus on what matters.
         </p>
 
         <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-12">
@@ -693,6 +693,15 @@ function HeroSection() {
               See How It Works
             </a>
           </Button>
+        </div>
+
+        {/* Industry pills */}
+        <div className="flex flex-wrap justify-center gap-2 mb-6">
+          {["Real Estate", "Car Sales", "Healthcare", "Retail", "Hospitality", "Services"].map((industry) => (
+            <span key={industry} className="px-3 py-1 rounded-full bg-gray-800/50 text-gray-400 text-xs border border-gray-700/50">
+              {industry}
+            </span>
+          ))}
         </div>
 
         <p className="text-sm text-gray-500">No credit card required. Free 14-day trial.</p>
@@ -712,20 +721,20 @@ function FeaturesSection() {
     },
     {
       icon: Bot,
-      label: "Human-Like AI Responses",
-      desc: "Powered by advanced AI trained on real estate conversations. Your leads won't know it's automated.",
+      label: "AI That Knows Your Business",
+      desc: "Pick your industry and the AI adapts instantly. It speaks your language and understands your customers.",
       color: "blue"
     },
     {
       icon: Clock,
-      label: "24/7 Lead Engagement",
-      desc: "Never miss another inquiry—even at 3 AM. Instant responses keep leads warm until you're ready.",
+      label: "24/7 Customer Engagement",
+      desc: "Never miss another inquiry—even at 3 AM. Instant responses keep customers engaged until you're ready.",
       color: "amber"
     },
     {
       icon: Users,
       label: "Team Collaboration",
-      desc: "Assign leads to agents, track performance, and manage your entire team from one dashboard.",
+      desc: "Assign leads to team members, track performance, and manage everyone from one dashboard.",
       color: "purple"
     },
     {
@@ -748,7 +757,7 @@ function FeaturesSection() {
         <div className="text-center mb-16">
           <h2 className="text-4xl font-bold text-white mb-4">Everything You Need to Scale</h2>
           <p className="text-gray-400 max-w-2xl mx-auto">
-            From instant AI responses to team management, MyChatFlow gives real estate professionals the tools to convert more leads.
+            From instant AI responses to team management, MyChatFlow gives businesses the tools to convert more leads and delight customers.
           </p>
         </div>
 
@@ -949,21 +958,21 @@ function PricingSection() {
 function TestimonialsSection() {
   const testimonials = [
     {
-      quote: "MyChatFlow helped me respond to leads instantly. I've closed 3 more deals this month just from faster follow-ups.",
+      quote: "MyChatFlow helped me respond to leads instantly. I've closed 3 more property deals this month just from faster follow-ups.",
       name: "Sarah Martinez",
-      role: "Real Estate Agent, Miami",
+      role: "Real Estate Agent, Cape Town",
       avatar: "SM",
     },
     {
-      quote: "My team was skeptical about AI, but the responses are so natural that clients can't tell the difference. Game changer.",
+      quote: "Customers message us at all hours asking about vehicle availability. Now they get instant answers and book test drives automatically.",
       name: "Michael Chen",
-      role: "Broker, Los Angeles",
+      role: "Car Dealership Owner, Johannesburg",
       avatar: "MC",
     },
     {
-      quote: "I was losing leads because I couldn't respond at night. Now my AI handles inquiries 24/7 and I wake up to qualified prospects.",
-      name: "Jennifer Adams",
-      role: "Real Estate Agent, Austin",
+      quote: "Our clinic was missing appointment requests after hours. Now patients can book 24/7 and we wake up to a full schedule.",
+      name: "Dr. Jennifer Adams",
+      role: "Medical Practice, Durban",
       avatar: "JA",
     },
   ];
@@ -972,9 +981,9 @@ function TestimonialsSection() {
     <section className="py-20 px-6 bg-gray-900/30">
       <div className="max-w-6xl mx-auto">
         <div className="text-center mb-16">
-          <h2 className="text-4xl font-bold text-white mb-4">Loved by Real Estate Professionals</h2>
+          <h2 className="text-4xl font-bold text-white mb-4">Loved by Businesses Everywhere</h2>
           <p className="text-gray-400 max-w-2xl mx-auto">
-            See how agents and brokers are using MyChatFlow to close more deals.
+            See how businesses across industries are using MyChatFlow to convert more leads and serve customers better.
           </p>
         </div>
 
@@ -1066,9 +1075,9 @@ function CTASection() {
     <section className="py-20 px-6">
       <div className="max-w-4xl mx-auto text-center">
         <div className="bg-gradient-to-br from-emerald-950/80 to-gray-900 rounded-3xl p-12 border border-emerald-500/20">
-          <h2 className="text-4xl font-bold text-white mb-4">Ready to Close More Deals?</h2>
+          <h2 className="text-4xl font-bold text-white mb-4">Ready to Grow Your Business?</h2>
           <p className="text-gray-400 mb-8 max-w-xl mx-auto">
-            Join hundreds of real estate professionals who are converting more leads with AI-powered WhatsApp automation.
+            Join thousands of businesses who are converting more leads with AI-powered WhatsApp automation.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Button asChild size="lg" className="h-14 px-10 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-lg rounded-xl">
@@ -1099,7 +1108,7 @@ function Footer() {
               <span className="text-lg font-bold text-white">MyChatFlow</span>
             </Link>
             <p className="text-gray-500 text-sm">
-              AI-powered WhatsApp automation for real estate professionals.
+              AI-powered WhatsApp automation for any business.
             </p>
           </div>
 
