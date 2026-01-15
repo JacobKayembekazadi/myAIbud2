@@ -299,3 +299,141 @@ export const recalculateAllScores = internalMutation({
     return { updated };
   },
 });
+
+/**
+ * Auto-recalculate lead score for a contact (called after each interaction)
+ * Creates notification if contact becomes a hot lead
+ */
+export const autoUpdateLeadScore = mutation({
+  args: {
+    contactId: v.id("contacts"),
+  },
+  handler: async (ctx, args) => {
+    const contact = await ctx.db.get(args.contactId);
+    if (!contact) throw new Error("Contact not found");
+
+    // Get settings for thresholds
+    const settings = await ctx.db
+      .query("settings")
+      .withIndex("by_tenant", (q) => q.eq("tenantId", contact.tenantId))
+      .first();
+
+    // Get interactions
+    const interactions = await ctx.db
+      .query("interactions")
+      .withIndex("by_contact", (q) => q.eq("contactId", args.contactId))
+      .collect();
+
+    const inboundMessages = interactions.filter((i) => i.type === "inbound");
+    const now = Date.now();
+    const lastInteraction = interactions.length > 0
+      ? Math.max(...interactions.map((i) => i.createdAt))
+      : contact.createdAt;
+    const daysSince = (now - lastInteraction) / (24 * 60 * 60 * 1000);
+
+    // Calculate score
+    let score = 0;
+    score += Math.min(25, inboundMessages.length * 5); // Engagement
+    score += Math.max(0, 25 - Math.floor(daysSince)); // Recency
+
+    // Intent scoring
+    const allContent = inboundMessages.map((i) => (i.content || "").toLowerCase()).join(" ");
+    let intentScore = 0;
+    for (const keyword of HIGH_INTENT_KEYWORDS) {
+      if (allContent.includes(keyword)) intentScore += 5;
+    }
+    for (const keyword of MEDIUM_INTENT_KEYWORDS) {
+      if (allContent.includes(keyword)) intentScore += 2;
+    }
+    score += Math.min(25, intentScore);
+    score += Math.min(25, interactions.length > 1 ? 15 : 0); // Response
+
+    const finalScore = Math.min(100, score);
+
+    // Determine grade based on settings or defaults
+    const hotThreshold = settings?.hotLeadThreshold ?? 80;
+    const warmThreshold = settings?.warmLeadThreshold ?? 50;
+
+    let grade: string;
+    if (finalScore >= hotThreshold) {
+      grade = "A";
+    } else if (finalScore >= warmThreshold) {
+      grade = "B";
+    } else if (finalScore >= 40) {
+      grade = "C";
+    } else if (finalScore >= 20) {
+      grade = "D";
+    } else {
+      grade = "F";
+    }
+
+    const previousGrade = contact.leadGrade;
+
+    // Update contact
+    await ctx.db.patch(args.contactId, {
+      leadScore: finalScore,
+      leadGrade: grade,
+      updatedAt: now,
+    });
+
+    // Create notification if upgraded to hot lead
+    if (grade === "A" && previousGrade !== "A" && settings?.leadScoringEnabled !== false) {
+      await ctx.db.insert("notifications", {
+        tenantId: contact.tenantId,
+        organizationId: contact.organizationId,
+        type: "new_lead",
+        title: "Hot Lead Detected!",
+        message: `${contact.name || contact.phone} is showing high buying intent (Score: ${finalScore})`,
+        contactId: args.contactId,
+        priority: "high",
+        isRead: false,
+        actionUrl: `/chat/${args.contactId}`,
+        createdAt: now,
+      });
+    }
+
+    return { score: finalScore, grade, upgraded: grade === "A" && previousGrade !== "A" };
+  },
+});
+
+/**
+ * Get lead distribution for dashboard
+ */
+export const getLeadDistribution = query({
+  args: { tenantId: v.id("tenants") },
+  handler: async (ctx, args) => {
+    const contacts = await ctx.db
+      .query("contacts")
+      .withIndex("by_tenant", (q) => q.eq("tenantId", args.tenantId))
+      .collect();
+
+    const distribution = {
+      hot: 0, // Grade A
+      warm: 0, // Grade B
+      cool: 0, // Grade C
+      cold: 0, // Grade D/F
+      total: 0,
+    };
+
+    for (const contact of contacts) {
+      if (contact.isDemo) continue;
+      distribution.total++;
+
+      switch (contact.leadGrade) {
+        case "A":
+          distribution.hot++;
+          break;
+        case "B":
+          distribution.warm++;
+          break;
+        case "C":
+          distribution.cool++;
+          break;
+        default:
+          distribution.cold++;
+      }
+    }
+
+    return distribution;
+  },
+});

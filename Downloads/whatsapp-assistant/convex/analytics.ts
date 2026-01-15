@@ -337,3 +337,145 @@ export const getDashboardSummary = query({
     };
   },
 });
+
+/**
+ * Get popular topics from conversations
+ */
+export const getPopularTopics = query({
+  args: { tenantId: v.id("tenants") },
+  handler: async (ctx, args) => {
+    const now = Date.now();
+    const sevenDaysAgo = now - 7 * 24 * 60 * 60 * 1000;
+
+    // Get recent inbound messages
+    const interactions = await ctx.db
+      .query("interactions")
+      .withIndex("by_tenant", (q) => q.eq("tenantId", args.tenantId))
+      .filter((q) =>
+        q.and(
+          q.gte(q.field("createdAt"), sevenDaysAgo),
+          q.eq(q.field("type"), "inbound")
+        )
+      )
+      .take(200);
+
+    // Extract and count keywords
+    const keywords: Record<string, number> = {};
+    const commonWords = new Set([
+      "the", "a", "an", "is", "are", "was", "were", "be", "been", "being",
+      "have", "has", "had", "do", "does", "did", "will", "would", "could", "should",
+      "i", "you", "he", "she", "it", "we", "they", "me", "him", "her", "us", "them",
+      "my", "your", "his", "her", "its", "our", "their",
+      "this", "that", "these", "those", "what", "which", "who", "whom", "whose",
+      "and", "but", "or", "if", "because", "as", "of", "at", "by", "for", "with",
+      "about", "to", "from", "in", "on", "up", "down", "out", "over", "under",
+      "hi", "hello", "hey", "thanks", "thank", "please", "yes", "no", "ok", "okay",
+    ]);
+
+    for (const interaction of interactions) {
+      if (!interaction.content) continue;
+
+      const words = interaction.content.toLowerCase()
+        .replace(/[^\w\s]/g, "")
+        .split(/\s+/)
+        .filter(w => w.length > 2 && !commonWords.has(w));
+
+      for (const word of words) {
+        keywords[word] = (keywords[word] || 0) + 1;
+      }
+    }
+
+    // Sort by count and take top 10
+    return Object.entries(keywords)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 10)
+      .map(([topic, count]) => ({ topic, count }));
+  },
+});
+
+/**
+ * Get hourly activity distribution
+ */
+export const getHourlyDistribution = query({
+  args: { tenantId: v.id("tenants") },
+  handler: async (ctx, args) => {
+    const now = Date.now();
+    const thirtyDaysAgo = now - 30 * 24 * 60 * 60 * 1000;
+
+    const interactions = await ctx.db
+      .query("interactions")
+      .withIndex("by_tenant", (q) => q.eq("tenantId", args.tenantId))
+      .filter((q) =>
+        q.and(
+          q.gte(q.field("createdAt"), thirtyDaysAgo),
+          q.eq(q.field("type"), "inbound")
+        )
+      )
+      .take(500);
+
+    // Count by hour
+    const hourly: Record<number, number> = {};
+    for (let i = 0; i < 24; i++) {
+      hourly[i] = 0;
+    }
+
+    for (const interaction of interactions) {
+      const hour = new Date(interaction.createdAt).getHours();
+      hourly[hour]++;
+    }
+
+    return Object.entries(hourly).map(([hour, count]) => ({
+      hour: parseInt(hour),
+      count,
+    }));
+  },
+});
+
+/**
+ * Get AI performance metrics
+ */
+export const getAIPerformance = query({
+  args: { tenantId: v.id("tenants") },
+  handler: async (ctx, args) => {
+    const now = Date.now();
+    const weekAgo = now - 7 * 24 * 60 * 60 * 1000;
+
+    // Get contacts with handoff data
+    const contacts = await ctx.db
+      .query("contacts")
+      .withIndex("by_tenant", (q) => q.eq("tenantId", args.tenantId))
+      .collect();
+
+    const activeContacts = contacts.filter(c => !c.isDemo);
+
+    // Get interactions
+    const interactions = await ctx.db
+      .query("interactions")
+      .withIndex("by_tenant", (q) => q.eq("tenantId", args.tenantId))
+      .filter((q) => q.gte(q.field("createdAt"), weekAgo))
+      .collect();
+
+    const outboundCount = interactions.filter(i => i.type === "outbound").length;
+    const handoffCount = activeContacts.filter(c => c.handoffRequested).length;
+
+    // Calculate success rate
+    const successRate = outboundCount > 0
+      ? Math.round(((outboundCount - handoffCount) / outboundCount) * 100)
+      : 100;
+
+    // Get lead distribution
+    const leadDistribution = {
+      hot: activeContacts.filter(c => c.leadGrade === "A").length,
+      warm: activeContacts.filter(c => c.leadGrade === "B").length,
+      cool: activeContacts.filter(c => c.leadGrade === "C").length,
+      cold: activeContacts.filter(c => c.leadGrade === "D" || c.leadGrade === "F" || !c.leadGrade).length,
+    };
+
+    return {
+      aiSuccessRate: successRate,
+      totalResponses: outboundCount,
+      handoffsTriggered: handoffCount,
+      leadDistribution,
+    };
+  },
+});
