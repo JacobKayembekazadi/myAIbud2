@@ -94,6 +94,9 @@ export default defineSchema({
     notes: v.optional(v.string()),
     isDemo: v.optional(v.boolean()),
     lastInteraction: v.optional(v.number()),
+    // Lead scoring fields
+    leadScore: v.optional(v.number()), // 0-100 score
+    leadGrade: v.optional(v.string()), // A, B, C, D, F
     // Team assignment fields
     assignedTo: v.optional(v.id("teamMembers")), // Agent assigned to this contact
     assignedBy: v.optional(v.id("teamMembers")), // Who made the assignment
