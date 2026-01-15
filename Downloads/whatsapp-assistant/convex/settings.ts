@@ -129,6 +129,15 @@ export const updateSettings = mutation({
                 emailNotifications: updates.emailNotifications ?? true,
                 smsNotifications: updates.smsNotifications ?? false,
                 defaultInstanceId: updates.defaultInstanceId,
+                // Business Profile defaults
+                businessName: updates.businessName,
+                industry: updates.industry ?? "general",
+                businessDescription: updates.businessDescription,
+                servicesOffered: updates.servicesOffered ?? [],
+                businessLocation: updates.businessLocation,
+                aiPersonality: updates.aiPersonality ?? "professional",
+                customSystemPrompt: updates.customSystemPrompt,
+                useQuickRepliesAsKnowledge: updates.useQuickRepliesAsKnowledge ?? true,
                 // Agent activation defaults
                 agentActivationMode: updates.agentActivationMode ?? "always_on",
                 activationKeywords: updates.activationKeywords ?? DEFAULT_ACTIVATION_KEYWORDS,
