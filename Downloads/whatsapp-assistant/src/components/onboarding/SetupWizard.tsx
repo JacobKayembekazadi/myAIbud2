@@ -42,7 +42,9 @@ export function SetupWizard({
   const completeOnboarding = useMutation(api.tenants.completeOnboarding);
   const updateStep = useMutation(api.tenants.updateOnboardingStep);
 
-  const [currentStep, setCurrentStep] = useState(initialStep);
+  // Clamp initialStep to valid range (0 to STEPS.length - 1)
+  const safeInitialStep = Math.min(Math.max(0, initialStep), STEPS.length - 1);
+  const [currentStep, setCurrentStep] = useState(safeInitialStep);
   const [createdInstanceId, setCreatedInstanceId] = useState<string | null>(null);
 
   // Find connected instance

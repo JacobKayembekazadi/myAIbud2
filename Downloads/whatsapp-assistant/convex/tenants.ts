@@ -98,7 +98,7 @@ export const markAITested = mutation({
   handler: async (ctx, args) => {
     await ctx.db.patch(args.tenantId, {
       hasTestedAI: true,
-      onboardingStep: 4,
+      onboardingStep: 3, // Keep at last valid step (0-3), completion tracked by onboardingCompleted
       updatedAt: Date.now(),
     });
   },
@@ -109,7 +109,7 @@ export const completeOnboarding = mutation({
   handler: async (ctx, args) => {
     await ctx.db.patch(args.tenantId, {
       onboardingCompleted: true,
-      onboardingStep: 4,
+      onboardingStep: 3, // Keep at last valid step (0-3)
       updatedAt: Date.now(),
     });
   },
