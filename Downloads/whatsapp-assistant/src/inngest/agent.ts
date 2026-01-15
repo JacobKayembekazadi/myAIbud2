@@ -259,11 +259,12 @@ export const messageAgent = inngest.createFunction(
     const { contactId, instanceId, tenantId, phone, content } = event.data;
 
     // Step 1: Get tenant settings (autoReply, AI model, activation mode, etc.)
+    // Using type assertion since the query returns a merged object with defaults
     const settings = await step.run("get-settings", async () => {
       return await convex.query(api.settings.getSettings, {
         tenantId: tenantId as any,
       });
-    });
+    }) as Record<string, any> | null;
 
     // Check if auto-reply is enabled (master switch)
     if (settings && settings.autoReplyEnabled === false) {

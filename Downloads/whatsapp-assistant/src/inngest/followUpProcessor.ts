@@ -87,7 +87,7 @@ export const processFollowUp = inngest.createFunction(
       status: "sent",
       stepIndex,
       sequenceCompleted: advancement.completed,
-      nextStep: advancement.nextStep,
+      nextStep: "nextStep" in advancement ? advancement.nextStep : undefined,
     };
   }
 );
