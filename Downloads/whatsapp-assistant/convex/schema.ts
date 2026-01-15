@@ -100,6 +100,20 @@ export default defineSchema({
     // AI Control fields
     aiEnabled: v.optional(v.boolean()), // Default true - AI can respond to this contact
     isPersonal: v.optional(v.boolean()), // Mark as personal contact (AI won't respond)
+    // Human Handoff fields
+    handoffRequested: v.optional(v.boolean()), // AI requested human intervention
+    handoffReason: v.optional(v.string()), // Why handoff was triggered
+    handoffAt: v.optional(v.number()), // When handoff was requested
+    handoffResolvedAt: v.optional(v.number()), // When human took over
+    handoffResolvedBy: v.optional(v.id("teamMembers")), // Which team member resolved
+    // Language preference
+    detectedLanguage: v.optional(v.string()), // Auto-detected language code (e.g., "en", "es", "fr")
+    preferredLanguage: v.optional(v.string()), // User-set language preference
+    // Follow-up sequence fields
+    followUpSequenceId: v.optional(v.id("followUpSequences")), // Active sequence
+    followUpStep: v.optional(v.number()), // Current step in sequence (0, 1, 2...)
+    lastFollowUpAt: v.optional(v.number()), // When last follow-up was sent
+    nextFollowUpAt: v.optional(v.number()), // When next follow-up is scheduled
     // Team assignment fields
     assignedTo: v.optional(v.id("teamMembers")), // Agent assigned to this contact
     assignedBy: v.optional(v.id("teamMembers")), // Who made the assignment
@@ -113,7 +127,9 @@ export default defineSchema({
     .index("by_status", ["tenantId", "status"])
     .index("by_organization", ["organizationId"])
     .index("by_assigned_to", ["assignedTo"])
-    .index("by_org_assigned", ["organizationId", "assignedTo"]),
+    .index("by_org_assigned", ["organizationId", "assignedTo"])
+    .index("by_handoff", ["tenantId", "handoffRequested"])
+    .index("by_next_followup", ["tenantId", "nextFollowUpAt"]),
 
   subscriptionUsage: defineTable({
     tenantId: v.id("tenants"),
@@ -206,6 +222,33 @@ export default defineSchema({
     businessHoursEnd: v.optional(v.number()), // Hour 0-23
     businessDays: v.optional(v.array(v.number())), // 0=Sun, 1=Mon, etc.
     businessTimezone: v.optional(v.string()), // e.g., "Africa/Johannesburg"
+    // Welcome Message Settings (for first-time contacts)
+    welcomeMessageEnabled: v.optional(v.boolean()), // Send welcome message to new contacts
+    welcomeMessage: v.optional(v.string()), // Custom welcome message
+    welcomeMessageDelay: v.optional(v.number()), // Delay in ms before sending (feels more natural)
+    suggestedQuestions: v.optional(v.array(v.string())), // Quick questions customers can ask
+    // Human Handoff Settings
+    handoffEnabled: v.optional(v.boolean()), // Enable AI to request handoff
+    handoffKeywords: v.optional(v.array(v.string())), // Phrases that trigger handoff (e.g., "speak to human")
+    handoffMessage: v.optional(v.string()), // Message sent when handoff triggered
+    handoffNotifyEmail: v.optional(v.boolean()), // Send email notification
+    handoffNotifyPush: v.optional(v.boolean()), // Send push/in-app notification
+    // Multi-language Settings
+    multiLanguageEnabled: v.optional(v.boolean()), // Auto-detect and respond in customer's language
+    defaultLanguage: v.optional(v.string()), // Default language code (e.g., "en")
+    supportedLanguages: v.optional(v.array(v.string())), // List of supported language codes
+    // Follow-up Sequence Settings
+    followUpEnabled: v.optional(v.boolean()), // Enable auto follow-ups
+    defaultFollowUpSequenceId: v.optional(v.id("followUpSequences")), // Default sequence
+    // Appointment Booking Settings
+    appointmentBookingEnabled: v.optional(v.boolean()), // Enable AI to book appointments
+    appointmentDuration: v.optional(v.number()), // Default duration in minutes
+    appointmentBuffer: v.optional(v.number()), // Buffer between appointments in minutes
+    appointmentReminderHours: v.optional(v.number()), // Hours before to send reminder
+    // Lead Scoring Settings
+    leadScoringEnabled: v.optional(v.boolean()), // Enable automatic lead scoring
+    hotLeadThreshold: v.optional(v.number()), // Score threshold for "hot" (default 80)
+    warmLeadThreshold: v.optional(v.number()), // Score threshold for "warm" (default 50)
     updatedAt: v.number(),
   })
     .index("by_tenant", ["tenantId"])
@@ -224,6 +267,159 @@ export default defineSchema({
     updatedAt: v.number(),
   })
     .index("by_tenant", ["tenantId"])
+    .index("by_organization", ["organizationId"]),
+
+  // Notifications for human handoff alerts
+  notifications: defineTable({
+    tenantId: v.id("tenants"),
+    organizationId: v.optional(v.id("organizations")),
+    type: v.union(
+      v.literal("handoff_request"), // AI needs human help
+      v.literal("new_lead"), // Hot lead detected
+      v.literal("appointment_booked"), // New appointment
+      v.literal("follow_up_due"), // Follow-up reminder
+      v.literal("system") // System notifications
+    ),
+    title: v.string(),
+    message: v.string(),
+    contactId: v.optional(v.id("contacts")), // Related contact
+    appointmentId: v.optional(v.id("appointments")), // Related appointment
+    priority: v.union(v.literal("low"), v.literal("medium"), v.literal("high"), v.literal("urgent")),
+    isRead: v.boolean(),
+    readAt: v.optional(v.number()),
+    readBy: v.optional(v.id("teamMembers")),
+    actionUrl: v.optional(v.string()), // Deep link to relevant page
+    createdAt: v.number(),
+  })
+    .index("by_tenant", ["tenantId"])
+    .index("by_tenant_unread", ["tenantId", "isRead"])
+    .index("by_organization", ["organizationId"])
+    .index("by_type", ["tenantId", "type"]),
+
+  // Follow-up sequences for automated follow-ups
+  followUpSequences: defineTable({
+    tenantId: v.id("tenants"),
+    organizationId: v.optional(v.id("organizations")),
+    name: v.string(), // e.g., "Default Follow-up", "Hot Lead Nurture"
+    isActive: v.boolean(),
+    isDefault: v.optional(v.boolean()), // Default sequence for new contacts
+    steps: v.array(
+      v.object({
+        delayHours: v.number(), // Hours after last interaction (24, 72, 168 for 1d, 3d, 7d)
+        message: v.string(), // Template message
+        stopOnReply: v.boolean(), // Stop sequence if customer replies
+      })
+    ),
+    triggerCondition: v.optional(
+      v.union(
+        v.literal("no_response"), // No response from customer
+        v.literal("after_first_contact"), // After first interaction
+        v.literal("after_quote"), // After sending a quote/price
+        v.literal("manual") // Manually triggered
+      )
+    ),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_tenant", ["tenantId"])
+    .index("by_organization", ["organizationId"])
+    .index("by_default", ["tenantId", "isDefault"]),
+
+  // Appointments for booking integration
+  appointments: defineTable({
+    tenantId: v.id("tenants"),
+    organizationId: v.optional(v.id("organizations")),
+    contactId: v.id("contacts"),
+    instanceId: v.string(),
+    title: v.string(), // e.g., "Property Viewing", "Test Drive"
+    description: v.optional(v.string()),
+    scheduledAt: v.number(), // Appointment time
+    duration: v.number(), // Duration in minutes
+    status: v.union(
+      v.literal("pending"), // Awaiting confirmation
+      v.literal("confirmed"),
+      v.literal("cancelled"),
+      v.literal("completed"),
+      v.literal("no_show")
+    ),
+    reminderSent: v.optional(v.boolean()),
+    reminderSentAt: v.optional(v.number()),
+    location: v.optional(v.string()), // Physical address or "virtual"
+    notes: v.optional(v.string()),
+    // Tracking
+    bookedVia: v.union(v.literal("ai"), v.literal("manual")), // How it was booked
+    assignedTo: v.optional(v.id("teamMembers")),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_tenant", ["tenantId"])
+    .index("by_contact", ["contactId"])
+    .index("by_scheduled", ["tenantId", "scheduledAt"])
+    .index("by_status", ["tenantId", "status"])
+    .index("by_organization", ["organizationId"]),
+
+  // Analytics events for tracking metrics
+  analyticsEvents: defineTable({
+    tenantId: v.id("tenants"),
+    organizationId: v.optional(v.id("organizations")),
+    eventType: v.union(
+      v.literal("message_received"), // Inbound message
+      v.literal("message_sent"), // AI response sent
+      v.literal("handoff_triggered"), // Handoff to human
+      v.literal("handoff_resolved"), // Handoff resolved
+      v.literal("lead_converted"), // Lead status changed to customer
+      v.literal("appointment_booked"), // Appointment created
+      v.literal("follow_up_sent"), // Follow-up message sent
+      v.literal("ai_success"), // AI successfully handled query
+      v.literal("ai_uncertain") // AI was uncertain
+    ),
+    contactId: v.optional(v.id("contacts")),
+    instanceId: v.optional(v.string()),
+    metadata: v.optional(v.any()), // Additional event data
+    // Metrics for response time tracking
+    responseTimeMs: v.optional(v.number()), // Time to respond
+    // Daily aggregation helper
+    dateKey: v.string(), // YYYY-MM-DD format for easy grouping
+    createdAt: v.number(),
+  })
+    .index("by_tenant", ["tenantId"])
+    .index("by_tenant_date", ["tenantId", "dateKey"])
+    .index("by_tenant_type", ["tenantId", "eventType"])
+    .index("by_organization", ["organizationId"]),
+
+  // Daily analytics summary (pre-aggregated for dashboard)
+  analyticsSummary: defineTable({
+    tenantId: v.id("tenants"),
+    organizationId: v.optional(v.id("organizations")),
+    dateKey: v.string(), // YYYY-MM-DD
+    // Message metrics
+    messagesReceived: v.number(),
+    messagesSent: v.number(),
+    uniqueContacts: v.number(),
+    // AI metrics
+    aiResponses: v.number(),
+    aiSuccessRate: v.number(), // 0-100%
+    avgResponseTimeMs: v.number(),
+    // Handoff metrics
+    handoffsTriggered: v.number(),
+    handoffsResolved: v.number(),
+    // Lead metrics
+    newLeads: v.number(),
+    hotLeads: v.number(),
+    conversions: v.number(),
+    // Appointment metrics
+    appointmentsBooked: v.number(),
+    appointmentsCompleted: v.number(),
+    // Popular topics (for word cloud)
+    topTopics: v.optional(v.array(v.object({
+      topic: v.string(),
+      count: v.number(),
+    }))),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_tenant", ["tenantId"])
+    .index("by_tenant_date", ["tenantId", "dateKey"])
     .index("by_organization", ["organizationId"]),
 });
 

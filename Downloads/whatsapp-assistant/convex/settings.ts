@@ -7,6 +7,16 @@ const DEFAULT_ACTIVATION_KEYWORDS = [
     "price", "available", "interested", "assistant", "AI", "bot"
 ];
 
+// Default handoff keywords
+const DEFAULT_HANDOFF_KEYWORDS = [
+    "speak to human", "talk to a person", "real person", "agent please",
+    "human please", "speak to someone", "customer service", "manager",
+    "representative", "I need help", "not helpful", "frustrated", "complaint"
+];
+
+// Supported languages
+const DEFAULT_SUPPORTED_LANGUAGES = ["en", "es", "fr", "de", "pt", "it", "nl", "zu", "af"];
+
 // Get settings for a tenant
 export const getSettings = query({
     args: { tenantId: v.id("tenants") },
@@ -44,6 +54,33 @@ export const getSettings = query({
                 businessHoursEnd: 18,
                 businessDays: [1, 2, 3, 4, 5], // Mon-Fri
                 businessTimezone: "Africa/Johannesburg",
+                // Welcome message defaults
+                welcomeMessageEnabled: true,
+                welcomeMessage: undefined, // Will be auto-generated from business profile
+                welcomeMessageDelay: 1000, // 1 second delay feels natural
+                suggestedQuestions: [],
+                // Human Handoff defaults
+                handoffEnabled: true,
+                handoffKeywords: DEFAULT_HANDOFF_KEYWORDS,
+                handoffMessage: "I'm connecting you with a team member who can better assist you. They'll be with you shortly!",
+                handoffNotifyEmail: true,
+                handoffNotifyPush: true,
+                // Multi-language defaults
+                multiLanguageEnabled: true,
+                defaultLanguage: "en",
+                supportedLanguages: DEFAULT_SUPPORTED_LANGUAGES,
+                // Follow-up defaults
+                followUpEnabled: true,
+                defaultFollowUpSequenceId: undefined,
+                // Appointment booking defaults
+                appointmentBookingEnabled: false, // Disabled by default until configured
+                appointmentDuration: 30, // 30 minutes default
+                appointmentBuffer: 15, // 15 minute buffer
+                appointmentReminderHours: 24, // Remind 24 hours before
+                // Lead scoring defaults
+                leadScoringEnabled: true,
+                hotLeadThreshold: 80,
+                warmLeadThreshold: 50,
             };
         }
 
@@ -64,6 +101,33 @@ export const getSettings = query({
             businessHoursEnd: settings.businessHoursEnd ?? 18,
             businessDays: settings.businessDays ?? [1, 2, 3, 4, 5],
             businessTimezone: settings.businessTimezone ?? "Africa/Johannesburg",
+            // Welcome message defaults
+            welcomeMessageEnabled: settings.welcomeMessageEnabled ?? true,
+            welcomeMessage: settings.welcomeMessage,
+            welcomeMessageDelay: settings.welcomeMessageDelay ?? 1000,
+            suggestedQuestions: settings.suggestedQuestions ?? [],
+            // Human Handoff defaults
+            handoffEnabled: settings.handoffEnabled ?? true,
+            handoffKeywords: settings.handoffKeywords ?? DEFAULT_HANDOFF_KEYWORDS,
+            handoffMessage: settings.handoffMessage ?? "I'm connecting you with a team member who can better assist you. They'll be with you shortly!",
+            handoffNotifyEmail: settings.handoffNotifyEmail ?? true,
+            handoffNotifyPush: settings.handoffNotifyPush ?? true,
+            // Multi-language defaults
+            multiLanguageEnabled: settings.multiLanguageEnabled ?? true,
+            defaultLanguage: settings.defaultLanguage ?? "en",
+            supportedLanguages: settings.supportedLanguages ?? DEFAULT_SUPPORTED_LANGUAGES,
+            // Follow-up defaults
+            followUpEnabled: settings.followUpEnabled ?? true,
+            defaultFollowUpSequenceId: settings.defaultFollowUpSequenceId,
+            // Appointment booking defaults
+            appointmentBookingEnabled: settings.appointmentBookingEnabled ?? false,
+            appointmentDuration: settings.appointmentDuration ?? 30,
+            appointmentBuffer: settings.appointmentBuffer ?? 15,
+            appointmentReminderHours: settings.appointmentReminderHours ?? 24,
+            // Lead scoring defaults
+            leadScoringEnabled: settings.leadScoringEnabled ?? true,
+            hotLeadThreshold: settings.hotLeadThreshold ?? 80,
+            warmLeadThreshold: settings.warmLeadThreshold ?? 50,
         };
     },
 });
@@ -104,6 +168,33 @@ export const updateSettings = mutation({
         businessHoursEnd: v.optional(v.number()),
         businessDays: v.optional(v.array(v.number())),
         businessTimezone: v.optional(v.string()),
+        // Welcome message settings
+        welcomeMessageEnabled: v.optional(v.boolean()),
+        welcomeMessage: v.optional(v.string()),
+        welcomeMessageDelay: v.optional(v.number()),
+        suggestedQuestions: v.optional(v.array(v.string())),
+        // Human Handoff settings
+        handoffEnabled: v.optional(v.boolean()),
+        handoffKeywords: v.optional(v.array(v.string())),
+        handoffMessage: v.optional(v.string()),
+        handoffNotifyEmail: v.optional(v.boolean()),
+        handoffNotifyPush: v.optional(v.boolean()),
+        // Multi-language settings
+        multiLanguageEnabled: v.optional(v.boolean()),
+        defaultLanguage: v.optional(v.string()),
+        supportedLanguages: v.optional(v.array(v.string())),
+        // Follow-up settings
+        followUpEnabled: v.optional(v.boolean()),
+        defaultFollowUpSequenceId: v.optional(v.id("followUpSequences")),
+        // Appointment booking settings
+        appointmentBookingEnabled: v.optional(v.boolean()),
+        appointmentDuration: v.optional(v.number()),
+        appointmentBuffer: v.optional(v.number()),
+        appointmentReminderHours: v.optional(v.number()),
+        // Lead scoring settings
+        leadScoringEnabled: v.optional(v.boolean()),
+        hotLeadThreshold: v.optional(v.number()),
+        warmLeadThreshold: v.optional(v.number()),
     },
     handler: async (ctx, args) => {
         const { tenantId, ...updates } = args;
@@ -147,6 +238,33 @@ export const updateSettings = mutation({
                 businessHoursEnd: updates.businessHoursEnd ?? 18,
                 businessDays: updates.businessDays ?? [1, 2, 3, 4, 5],
                 businessTimezone: updates.businessTimezone ?? "Africa/Johannesburg",
+                // Welcome message defaults
+                welcomeMessageEnabled: updates.welcomeMessageEnabled ?? true,
+                welcomeMessage: updates.welcomeMessage,
+                welcomeMessageDelay: updates.welcomeMessageDelay ?? 1000,
+                suggestedQuestions: updates.suggestedQuestions ?? [],
+                // Human Handoff defaults
+                handoffEnabled: updates.handoffEnabled ?? true,
+                handoffKeywords: updates.handoffKeywords ?? DEFAULT_HANDOFF_KEYWORDS,
+                handoffMessage: updates.handoffMessage ?? "I'm connecting you with a team member who can better assist you. They'll be with you shortly!",
+                handoffNotifyEmail: updates.handoffNotifyEmail ?? true,
+                handoffNotifyPush: updates.handoffNotifyPush ?? true,
+                // Multi-language defaults
+                multiLanguageEnabled: updates.multiLanguageEnabled ?? true,
+                defaultLanguage: updates.defaultLanguage ?? "en",
+                supportedLanguages: updates.supportedLanguages ?? DEFAULT_SUPPORTED_LANGUAGES,
+                // Follow-up defaults
+                followUpEnabled: updates.followUpEnabled ?? true,
+                defaultFollowUpSequenceId: updates.defaultFollowUpSequenceId,
+                // Appointment booking defaults
+                appointmentBookingEnabled: updates.appointmentBookingEnabled ?? false,
+                appointmentDuration: updates.appointmentDuration ?? 30,
+                appointmentBuffer: updates.appointmentBuffer ?? 15,
+                appointmentReminderHours: updates.appointmentReminderHours ?? 24,
+                // Lead scoring defaults
+                leadScoringEnabled: updates.leadScoringEnabled ?? true,
+                hotLeadThreshold: updates.hotLeadThreshold ?? 80,
+                warmLeadThreshold: updates.warmLeadThreshold ?? 50,
                 updatedAt: Date.now(),
             });
         }

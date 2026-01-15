@@ -164,6 +164,17 @@ export const updateContact = mutation({
     status: v.optional(v.string()),
     aiEnabled: v.optional(v.boolean()),
     isPersonal: v.optional(v.boolean()),
+    // Language fields
+    detectedLanguage: v.optional(v.string()),
+    preferredLanguage: v.optional(v.string()),
+    // Lead scoring fields
+    leadScore: v.optional(v.number()),
+    leadGrade: v.optional(v.string()),
+    // Handoff fields
+    handoffRequested: v.optional(v.boolean()),
+    handoffReason: v.optional(v.string()),
+    handoffAt: v.optional(v.number()),
+    handoffResolvedAt: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
     const { contactId, ...updates } = args;
@@ -175,6 +186,14 @@ export const updateContact = mutation({
     if (updates.status !== undefined) filteredUpdates.status = updates.status;
     if (updates.aiEnabled !== undefined) filteredUpdates.aiEnabled = updates.aiEnabled;
     if (updates.isPersonal !== undefined) filteredUpdates.isPersonal = updates.isPersonal;
+    if (updates.detectedLanguage !== undefined) filteredUpdates.detectedLanguage = updates.detectedLanguage;
+    if (updates.preferredLanguage !== undefined) filteredUpdates.preferredLanguage = updates.preferredLanguage;
+    if (updates.leadScore !== undefined) filteredUpdates.leadScore = updates.leadScore;
+    if (updates.leadGrade !== undefined) filteredUpdates.leadGrade = updates.leadGrade;
+    if (updates.handoffRequested !== undefined) filteredUpdates.handoffRequested = updates.handoffRequested;
+    if (updates.handoffReason !== undefined) filteredUpdates.handoffReason = updates.handoffReason;
+    if (updates.handoffAt !== undefined) filteredUpdates.handoffAt = updates.handoffAt;
+    if (updates.handoffResolvedAt !== undefined) filteredUpdates.handoffResolvedAt = updates.handoffResolvedAt;
 
     await ctx.db.patch(contactId, filteredUpdates);
     return contactId;

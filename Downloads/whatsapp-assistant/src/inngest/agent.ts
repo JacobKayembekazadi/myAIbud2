@@ -105,7 +105,8 @@ function buildSystemPrompt(settings: any, quickRepliesContext: string): string {
   prompt += `\n\nGeneral guidelines:
 - Keep responses concise (1-3 sentences when possible)
 - If you don't know something specific, offer to have someone follow up
-- Be helpful and aim to resolve inquiries or move them forward`;
+- Be helpful and aim to resolve inquiries or move them forward
+- If a customer explicitly asks to speak to a human or seems frustrated, acknowledge their request politely`;
 
   // Add quick replies context
   prompt += quickRepliesContext;
@@ -113,10 +114,98 @@ function buildSystemPrompt(settings: any, quickRepliesContext: string): string {
   return prompt;
 }
 
+// Helper: Build system prompt with language instruction
+function buildSystemPromptWithLanguage(settings: any, quickRepliesContext: string, language: string): string {
+  let basePrompt = buildSystemPrompt(settings, quickRepliesContext);
+
+  // Add language instruction if not English
+  if (language && language !== "en") {
+    const languageNames: Record<string, string> = {
+      es: "Spanish",
+      fr: "French",
+      de: "German",
+      pt: "Portuguese",
+      it: "Italian",
+      nl: "Dutch",
+      zu: "Zulu",
+      af: "Afrikaans",
+    };
+
+    const langName = languageNames[language] || language;
+    basePrompt += `\n\nIMPORTANT: The customer is writing in ${langName}. Please respond in ${langName} to match their language preference.`;
+  }
+
+  return basePrompt;
+}
+
 // Helper: Check if message contains any activation keywords
 function containsKeyword(message: string, keywords: string[]): boolean {
   const lowerMessage = message.toLowerCase();
   return keywords.some(keyword => lowerMessage.includes(keyword.toLowerCase()));
+}
+
+// Helper: Check if message contains handoff trigger keywords
+function shouldTriggerHandoff(message: string, handoffKeywords: string[]): { trigger: boolean; reason: string } {
+  const lowerMessage = message.toLowerCase();
+
+  for (const keyword of handoffKeywords) {
+    if (lowerMessage.includes(keyword.toLowerCase())) {
+      return { trigger: true, reason: `Customer requested: "${keyword}"` };
+    }
+  }
+
+  return { trigger: false, reason: "" };
+}
+
+// Helper: Check if AI response indicates uncertainty
+function isAIUncertain(aiResponse: string): { uncertain: boolean; reason: string } {
+  const uncertaintyPhrases = [
+    "i'm not sure",
+    "i don't have that information",
+    "i cannot help with",
+    "i'm unable to",
+    "you should contact",
+    "please contact our team",
+    "i don't know",
+    "i'm not certain",
+    "beyond my capabilities",
+    "outside my scope",
+    "need to speak with",
+    "better to talk to",
+  ];
+
+  const lowerResponse = aiResponse.toLowerCase();
+
+  for (const phrase of uncertaintyPhrases) {
+    if (lowerResponse.includes(phrase)) {
+      return { uncertain: true, reason: `AI expressed uncertainty: "${phrase}"` };
+    }
+  }
+
+  return { uncertain: false, reason: "" };
+}
+
+// Helper: Detect language from text (simple detection)
+function detectLanguage(text: string): string {
+  // Common words in different languages for basic detection
+  const languagePatterns: Record<string, RegExp[]> = {
+    es: [/\b(hola|gracias|buenos|buenas|que|como|por favor|ayuda)\b/i],
+    fr: [/\b(bonjour|merci|s'il vous plait|comment|aide|oui|non)\b/i],
+    de: [/\b(hallo|danke|bitte|wie|hilfe|guten|ja|nein)\b/i],
+    pt: [/\b(olá|obrigado|por favor|como|ajuda|bom dia|sim|não)\b/i],
+    it: [/\b(ciao|grazie|per favore|come|aiuto|buongiorno|si|no)\b/i],
+    nl: [/\b(hallo|dank|alstublieft|hoe|hulp|goedendag|ja|nee)\b/i],
+    zu: [/\b(sawubona|ngiyabonga|yebo|cha|usizo|kanjani)\b/i], // Zulu
+    af: [/\b(hallo|dankie|asseblief|hoe|hulp|goeie|ja|nee)\b/i], // Afrikaans
+  };
+
+  for (const [lang, patterns] of Object.entries(languagePatterns)) {
+    if (patterns.some(pattern => pattern.test(text))) {
+      return lang;
+    }
+  }
+
+  return "en"; // Default to English
 }
 
 // Helper: Check if current time is within business hours
@@ -170,11 +259,12 @@ export const messageAgent = inngest.createFunction(
     const { contactId, instanceId, tenantId, phone, content } = event.data;
 
     // Step 1: Get tenant settings (autoReply, AI model, activation mode, etc.)
+    // Using type assertion since the query returns a merged object with defaults
     const settings = await step.run("get-settings", async () => {
       return await convex.query(api.settings.getSettings, {
         tenantId: tenantId as any,
       });
-    });
+    }) as Record<string, any> | null;
 
     // Check if auto-reply is enabled (master switch)
     if (settings && settings.autoReplyEnabled === false) {
@@ -268,6 +358,67 @@ export const messageAgent = inngest.createFunction(
       return { status: "skipped", reason: skipReason, activationMode };
     }
 
+    // Step 3.5: Check for handoff keywords in customer message
+    const handoffEnabled = settings?.handoffEnabled ?? true;
+    const handoffKeywords = settings?.handoffKeywords || [];
+
+    if (handoffEnabled && handoffKeywords.length > 0) {
+      const handoffCheck = shouldTriggerHandoff(content, handoffKeywords);
+
+      if (handoffCheck.trigger) {
+        // Trigger immediate handoff
+        await step.run("trigger-handoff", async () => {
+          // Request handoff (pause AI and create notification)
+          await convex.mutation(api.notifications.requestHandoff, {
+            contactId: contactId as any,
+            reason: handoffCheck.reason,
+            createNotification: true,
+          });
+        });
+
+        // Send handoff message to customer
+        const handoffMessage = settings?.handoffMessage ||
+          "I'm connecting you with a team member who can better assist you. They'll be with you shortly!";
+
+        await step.run("send-handoff-message", async () => {
+          const result = await whatsapp.sendText(instanceId, phone, handoffMessage);
+          if (!result.success) {
+            console.error("Failed to send handoff message:", result.error);
+          }
+        });
+
+        // Log the handoff interaction
+        await step.run("log-handoff", async () => {
+          await convex.mutation(api.interactions.addInteraction, {
+            contactId: contactId as any,
+            tenantId: tenantId as any,
+            type: "outbound",
+            content: `[Handoff] ${handoffMessage}`,
+          });
+        });
+
+        return { status: "handoff", reason: handoffCheck.reason };
+      }
+    }
+
+    // Step 3.6: Detect language for multi-language support
+    const multiLanguageEnabled = settings?.multiLanguageEnabled ?? true;
+    let detectedLang = contact?.detectedLanguage || "en";
+
+    if (multiLanguageEnabled) {
+      const newDetectedLang = detectLanguage(content);
+      if (newDetectedLang !== detectedLang) {
+        detectedLang = newDetectedLang;
+        // Update contact's detected language
+        await step.run("update-language", async () => {
+          await convex.mutation(api.contacts.updateContact, {
+            contactId: contactId as any,
+            detectedLanguage: detectedLang,
+          });
+        });
+      }
+    }
+
     // Step 4: Check credits
     const creditCheck = await step.run("check-credits", async () => {
       return await convex.query(api.subscriptionUsage.checkCredits, {
@@ -279,21 +430,74 @@ export const messageAgent = inngest.createFunction(
       return { status: "blocked", reason: "No credits remaining" };
     }
 
-    // Step 5: Get conversation history
+    // Step 5: Check if this is a first-time contact and send welcome message
+    const isFirstContact = contact?.status === "new";
+    const welcomeEnabled = settings?.welcomeMessageEnabled ?? true;
+
+    if (isFirstContact && welcomeEnabled) {
+      await step.run("send-welcome-message", async () => {
+        // Build welcome message
+        let welcomeText = settings?.welcomeMessage;
+
+        // If no custom welcome message, generate one from business profile
+        if (!welcomeText) {
+          const businessName = settings?.businessName || "us";
+          const services = settings?.servicesOffered || [];
+
+          welcomeText = `Hi! Welcome to ${businessName}. 👋`;
+
+          if (services.length > 0) {
+            welcomeText += `\n\nWe can help you with: ${services.slice(0, 3).join(", ")}${services.length > 3 ? ", and more" : ""}.`;
+          }
+
+          welcomeText += `\n\nHow can I assist you today?`;
+        }
+
+        // Add suggested questions if available
+        const suggestedQuestions = settings?.suggestedQuestions || [];
+        if (suggestedQuestions.length > 0) {
+          welcomeText += `\n\n💡 *Quick questions you can ask:*`;
+          suggestedQuestions.slice(0, 3).forEach((q: string) => {
+            welcomeText += `\n• ${q}`;
+          });
+        }
+
+        // Small delay to feel more natural
+        const delay = settings?.welcomeMessageDelay ?? 1000;
+        if (delay > 0) {
+          await new Promise(resolve => setTimeout(resolve, delay));
+        }
+
+        const result = await whatsapp.sendText(instanceId, phone, welcomeText!);
+        if (!result.success) {
+          console.error("Failed to send welcome message:", result.error);
+        }
+
+        // Log the welcome message
+        await convex.mutation(api.interactions.addInteraction, {
+          contactId: contactId as any,
+          tenantId: tenantId as any,
+          type: "outbound",
+          content: `[Welcome] ${welcomeText}`,
+        });
+      });
+    }
+
+    // Step 6: Get conversation history
     const history = await step.run("get-history", async () => {
       return await convex.query(api.interactions.getMessages, {
         contactId: contactId as any,
       });
     });
 
-    // Step 6: Get quick replies for context
+    // Step 7: Get quick replies for context
     const quickReplies = await step.run("get-quick-replies", async () => {
       return await convex.query(api.settings.listQuickReplies, {
         tenantId: tenantId as any,
       });
     });
 
-    // Step 7: Generate AI response using tenant's settings
+    // Step 8: Generate AI response using tenant's settings
     const aiResponse = await step.run("generate-response", async () => {
       const historyText = history
         .slice(-10)
@@ -314,8 +518,10 @@ export const messageAgent = inngest.createFunction(
       // Use tenant's AI model setting, fallback to gemini-1.5-flash
       const modelName = settings?.aiModel || "gemini-1.5-flash";
 
-      // Build dynamic system prompt from business profile
-      const systemPrompt = buildSystemPrompt(settings, quickRepliesContext);
+      // Build dynamic system prompt with language support
+      const systemPrompt = multiLanguageEnabled
+        ? buildSystemPromptWithLanguage(settings, quickRepliesContext, detectedLang)
+        : buildSystemPrompt(settings, quickRepliesContext);
 
       const { text } = await generateText({
         model: google(modelName),
@@ -327,7 +533,26 @@ export const messageAgent = inngest.createFunction(
       return text;
     });
 
-    // Step 8: Send message via WhatsApp
+    // Step 8.5: Check if AI response indicates uncertainty (post-response handoff)
+    if (handoffEnabled) {
+      const uncertaintyCheck = isAIUncertain(aiResponse);
+
+      if (uncertaintyCheck.uncertain) {
+        // AI is uncertain - trigger soft handoff (still send AI response but flag for human review)
+        await step.run("flag-for-review", async () => {
+          await convex.mutation(api.notifications.requestHandoff, {
+            contactId: contactId as any,
+            reason: uncertaintyCheck.reason,
+            createNotification: true,
+          });
+        });
+
+        // Note: We still send the AI response but the contact is now flagged for review
+        // The human can see the AI's response and decide to take over
+      }
+    }
+
+    // Step 9: Send message via WhatsApp
     await step.run("send-message", async () => {
       const result = await whatsapp.sendText(instanceId, phone, aiResponse);
       if (!result.success) {
@@ -335,7 +560,7 @@ export const messageAgent = inngest.createFunction(
       }
     });
 
-    // Step 9: Log outbound interaction
+    // Step 10: Log outbound interaction
     await step.run("log-outbound", async () => {
       await convex.mutation(api.interactions.addInteraction, {
         contactId: contactId as any,
@@ -345,19 +570,37 @@ export const messageAgent = inngest.createFunction(
       });
     });
 
-    // Step 10: Decrement credits
+    // Step 11: Decrement credits
     await step.run("decrement-credits", async () => {
       await convex.mutation(api.subscriptionUsage.decrementCredits, {
         tenantId: tenantId as any,
       });
     });
 
-    // Step 11: Update contact status to active if new
+    // Step 12: Update contact status to active if new
     if (contact?.status === "new") {
       await step.run("activate-contact", async () => {
         await convex.mutation(api.contacts.updateContact, {
           contactId: contactId as any,
           status: "active",
+        });
+      });
+    }
+
+    // Step 13: Stop follow-up sequence if customer replied
+    if (contact?.followUpSequenceId) {
+      await step.run("stop-followup-sequence", async () => {
+        await convex.mutation(api.followUpSequences.stopSequenceOnReply, {
+          contactId: contactId as any,
+        });
+      });
+    }
+
+    // Step 14: Update lead score
+    if (settings?.leadScoringEnabled !== false) {
+      await step.run("update-lead-score", async () => {
+        await convex.mutation(api.leadScoring.autoUpdateLeadScore, {
+          contactId: contactId as any,
         });
       });
     }

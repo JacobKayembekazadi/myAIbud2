@@ -6,6 +6,7 @@ import { campaignSender } from "@/inngest/functions/campaign-sender";
 import { sendInviteEmail } from "@/inngest/functions/send-invite-email";
 import { billingGuard, billingMonitor, creditExhaustedHandler } from "@/inngest/functions/billing-guard";
 import { visionEstimator } from "@/inngest/functions/vision-estimator";
+import { processFollowUp, followUpCronJob, processFollowUpsForTenant } from "@/inngest/followUpProcessor";
 import { inngestRateLimiter, getRateLimitIdentifier } from "@/lib/ratelimit";
 import { logSecurity } from "@/lib/logger";
 
@@ -20,6 +21,10 @@ const baseHandlers = serve({
         billingMonitor,
         creditExhaustedHandler,
         visionEstimator,
+        // Follow-up sequence functions
+        processFollowUp,
+        followUpCronJob,
+        processFollowUpsForTenant,
     ],
 });
 

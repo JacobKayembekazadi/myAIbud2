@@ -15,7 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { User, Bot, Bell, Zap, Trash2, Plus, Loader2, Users, Sparkles, Clock, X, Building2, Briefcase, Home, Car, ShoppingBag, Hotel, Stethoscope, Scale } from "lucide-react";
+import { User, Bot, Bell, Zap, Trash2, Plus, Loader2, Users, Sparkles, Clock, X, Building2, Briefcase, Home, Car, ShoppingBag, Hotel, Stethoscope, Scale, MessageSquare, Link2, Copy, Check, ExternalLink } from "lucide-react";
 import { useRouter } from "next/navigation";
 import TeamUpgradeWizard from "@/components/onboarding/TeamUpgradeWizard";
 
@@ -40,6 +40,9 @@ export function SettingsClient() {
     const [newService, setNewService] = useState("");
     const [magicDescription, setMagicDescription] = useState("");
     const [magicLoading, setMagicLoading] = useState(false);
+    const [newQuestion, setNewQuestion] = useState("");
+    const [copiedLink, setCopiedLink] = useState(false);
+    const [prefilledMessage, setPrefilledMessage] = useState("Hi, I'm interested in learning more about your services.");
 
     const isSoloAccount = !tenant?.organizationId || tenant?.accountType !== "team";
 
@@ -236,6 +239,14 @@ export function SettingsClient() {
                 <TabsTrigger value="agent-activation" className="data-[state=active]:bg-green-600/20 data-[state=active]:text-green-400">
                     <Sparkles className="w-4 h-4 mr-2" />
                     Agent Activation
+                </TabsTrigger>
+                <TabsTrigger value="welcome-message" className="data-[state=active]:bg-green-600/20 data-[state=active]:text-green-400">
+                    <MessageSquare className="w-4 h-4 mr-2" />
+                    Welcome Message
+                </TabsTrigger>
+                <TabsTrigger value="share" className="data-[state=active]:bg-green-600/20 data-[state=active]:text-green-400">
+                    <Link2 className="w-4 h-4 mr-2" />
+                    Share
                 </TabsTrigger>
                 <TabsTrigger value="notifications" className="data-[state=active]:bg-green-600/20 data-[state=active]:text-green-400">
                     <Bell className="w-4 h-4 mr-2" />
@@ -871,6 +882,317 @@ export function SettingsClient() {
                         </ul>
                     </CardContent>
                 </Card>
+            </TabsContent>
+
+            {/* Welcome Message Tab */}
+            <TabsContent value="welcome-message" className="space-y-6">
+                <Card className="bg-gray-900/50 border-gray-800">
+                    <CardHeader>
+                        <CardTitle className="text-white flex items-center gap-2">
+                            <MessageSquare className="w-5 h-5 text-emerald-400" />
+                            Welcome Message
+                        </CardTitle>
+                        <CardDescription>
+                            Automatically greet new customers when they first message you on WhatsApp
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-6">
+                        {/* Enable/Disable Welcome Message */}
+                        <div className="flex items-center justify-between">
+                            <div className="space-y-0.5">
+                                <Label className="text-gray-300">Enable Welcome Message</Label>
+                                <p className="text-sm text-gray-500">
+                                    Send an automatic greeting to first-time contacts
+                                </p>
+                            </div>
+                            <Switch
+                                checked={settings.welcomeMessageEnabled ?? true}
+                                onCheckedChange={(checked) => handleUpdateSettings({ welcomeMessageEnabled: checked })}
+                            />
+                        </div>
+
+                        <Separator className="bg-gray-800" />
+
+                        {/* Custom Welcome Message */}
+                        <div className="space-y-3">
+                            <Label className="text-gray-300">Custom Welcome Message (Optional)</Label>
+                            <p className="text-sm text-gray-500">
+                                Leave empty to auto-generate from your business profile, or write your own.
+                            </p>
+                            <Textarea
+                                placeholder={`Hi! Welcome to ${settings.businessName || "our business"}. 👋\n\nWe can help you with: ${(settings.servicesOffered || []).slice(0, 3).join(", ") || "our services"}.\n\nHow can I assist you today?`}
+                                value={settings.welcomeMessage || ""}
+                                onChange={(e) => handleUpdateSettings({ welcomeMessage: e.target.value })}
+                                className="bg-gray-800/50 border-gray-700 text-white min-h-32"
+                            />
+                        </div>
+
+                        <Separator className="bg-gray-800" />
+
+                        {/* Suggested Questions */}
+                        <div className="space-y-3">
+                            <Label className="text-gray-300">Suggested Questions</Label>
+                            <p className="text-sm text-gray-500">
+                                Help customers get started by showing them what they can ask
+                            </p>
+
+                            {/* Add Question Input */}
+                            <div className="flex gap-2">
+                                <Input
+                                    placeholder="e.g., What are your prices?"
+                                    value={newQuestion}
+                                    onChange={(e) => setNewQuestion(e.target.value)}
+                                    onKeyPress={(e) => {
+                                        if (e.key === "Enter" && newQuestion.trim()) {
+                                            const current = settings.suggestedQuestions || [];
+                                            handleUpdateSettings({
+                                                suggestedQuestions: [...current, newQuestion.trim()]
+                                            });
+                                            setNewQuestion("");
+                                        }
+                                    }}
+                                    className="bg-gray-800/50 border-gray-700 text-white"
+                                />
+                                <Button
+                                    onClick={() => {
+                                        if (newQuestion.trim()) {
+                                            const current = settings.suggestedQuestions || [];
+                                            handleUpdateSettings({
+                                                suggestedQuestions: [...current, newQuestion.trim()]
+                                            });
+                                            setNewQuestion("");
+                                        }
+                                    }}
+                                    className="bg-emerald-600 hover:bg-emerald-700"
+                                >
+                                    <Plus className="w-4 h-4" />
+                                </Button>
+                            </div>
+
+                            {/* Question Tags */}
+                            <div className="flex flex-wrap gap-2">
+                                {(settings.suggestedQuestions || []).map((question: string, index: number) => (
+                                    <Badge
+                                        key={index}
+                                        variant="secondary"
+                                        className="bg-gray-700 text-white px-3 py-1 flex items-center gap-1"
+                                    >
+                                        {question}
+                                        <X
+                                            className="w-3 h-3 cursor-pointer hover:text-red-400"
+                                            onClick={() => {
+                                                const current = settings.suggestedQuestions || [];
+                                                handleUpdateSettings({
+                                                    suggestedQuestions: current.filter((_: string, i: number) => i !== index)
+                                                });
+                                            }}
+                                        />
+                                    </Badge>
+                                ))}
+                                {(settings.suggestedQuestions || []).length === 0 && (
+                                    <p className="text-sm text-gray-500 italic">No suggested questions yet</p>
+                                )}
+                            </div>
+                        </div>
+
+                        <Separator className="bg-gray-800" />
+
+                        {/* Response Delay */}
+                        <div className="space-y-3">
+                            <Label className="text-gray-300">Response Delay</Label>
+                            <p className="text-sm text-gray-500">
+                                Small delay makes responses feel more natural (1-3 seconds recommended)
+                            </p>
+                            <Select
+                                value={String(settings.welcomeMessageDelay ?? 1000)}
+                                onValueChange={(value) => handleUpdateSettings({ welcomeMessageDelay: parseInt(value) })}
+                            >
+                                <SelectTrigger className="bg-gray-800/50 border-gray-700 text-white w-48">
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent className="bg-gray-900 border-gray-800">
+                                    <SelectItem value="0">Instant</SelectItem>
+                                    <SelectItem value="500">0.5 seconds</SelectItem>
+                                    <SelectItem value="1000">1 second</SelectItem>
+                                    <SelectItem value="2000">2 seconds</SelectItem>
+                                    <SelectItem value="3000">3 seconds</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+                    </CardContent>
+                </Card>
+
+                {/* Preview Card */}
+                <Card className="bg-emerald-950/30 border-emerald-800/50">
+                    <CardHeader>
+                        <CardTitle className="text-white text-base">Preview</CardTitle>
+                        <CardDescription>This is what customers will see when they first message you</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="bg-gray-800/50 rounded-lg p-4 border border-gray-700">
+                            <p className="text-white whitespace-pre-line">
+                                {settings.welcomeMessage || `Hi! Welcome to ${settings.businessName || "us"}. 👋${
+                                    (settings.servicesOffered || []).length > 0
+                                        ? `\n\nWe can help you with: ${(settings.servicesOffered || []).slice(0, 3).join(", ")}${(settings.servicesOffered || []).length > 3 ? ", and more" : ""}.`
+                                        : ""
+                                }\n\nHow can I assist you today?`}
+                            </p>
+                            {(settings.suggestedQuestions || []).length > 0 && (
+                                <div className="mt-3 pt-3 border-t border-gray-700">
+                                    <p className="text-gray-400 text-sm">💡 *Quick questions you can ask:*</p>
+                                    {(settings.suggestedQuestions || []).slice(0, 3).map((q: string, i: number) => (
+                                        <p key={i} className="text-gray-400 text-sm">• {q}</p>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    </CardContent>
+                </Card>
+            </TabsContent>
+
+            {/* Share Tab - WhatsApp Link Generator */}
+            <TabsContent value="share" className="space-y-6">
+                <Card className="bg-gray-900/50 border-gray-800">
+                    <CardHeader>
+                        <CardTitle className="text-white flex items-center gap-2">
+                            <Link2 className="w-5 h-5 text-emerald-400" />
+                            WhatsApp Link Generator
+                        </CardTitle>
+                        <CardDescription>
+                            Create click-to-chat links for your website, social media, or email signatures
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-6">
+                        {/* Instance Selection */}
+                        <div className="space-y-3">
+                            <Label className="text-gray-300">Select WhatsApp Number</Label>
+                            <Select
+                                value={settings.defaultInstanceId || ""}
+                                onValueChange={(value) => handleUpdateSettings({ defaultInstanceId: value })}
+                            >
+                                <SelectTrigger className="bg-gray-800/50 border-gray-700 text-white">
+                                    <SelectValue placeholder="Select an instance" />
+                                </SelectTrigger>
+                                <SelectContent className="bg-gray-900 border-gray-800">
+                                    {(instances || []).map((instance: any) => (
+                                        <SelectItem key={instance._id} value={instance.instanceId}>
+                                            {instance.name} ({instance.status})
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+
+                        <Separator className="bg-gray-800" />
+
+                        {/* Pre-filled Message */}
+                        <div className="space-y-3">
+                            <Label className="text-gray-300">Pre-filled Message (Optional)</Label>
+                            <p className="text-sm text-gray-500">
+                                Customer's chat will open with this message pre-typed
+                            </p>
+                            <Textarea
+                                placeholder="Hi, I'm interested in learning more about your services."
+                                value={prefilledMessage}
+                                onChange={(e) => setPrefilledMessage(e.target.value)}
+                                className="bg-gray-800/50 border-gray-700 text-white min-h-20"
+                            />
+                        </div>
+
+                        <Separator className="bg-gray-800" />
+
+                        {/* Generated Link */}
+                        <div className="space-y-3">
+                            <Label className="text-gray-300">Your WhatsApp Link</Label>
+                            {settings.defaultInstanceId ? (
+                                <>
+                                    <div className="flex gap-2">
+                                        <Input
+                                            readOnly
+                                            value={`https://wa.me/${(instances || []).find((i: any) => i.instanceId === settings.defaultInstanceId)?.instanceId?.replace(/[^0-9]/g, "") || ""}${prefilledMessage ? `?text=${encodeURIComponent(prefilledMessage)}` : ""}`}
+                                            className="bg-gray-800/50 border-gray-700 text-white"
+                                        />
+                                        <Button
+                                            onClick={() => {
+                                                const link = `https://wa.me/${(instances || []).find((i: any) => i.instanceId === settings.defaultInstanceId)?.instanceId?.replace(/[^0-9]/g, "") || ""}${prefilledMessage ? `?text=${encodeURIComponent(prefilledMessage)}` : ""}`;
+                                                navigator.clipboard.writeText(link);
+                                                setCopiedLink(true);
+                                                toast.success("Link copied to clipboard!");
+                                                setTimeout(() => setCopiedLink(false), 2000);
+                                            }}
+                                            className="bg-emerald-600 hover:bg-emerald-700"
+                                        >
+                                            {copiedLink ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                                        </Button>
+                                    </div>
+                                    <Button
+                                        variant="outline"
+                                        className="border-gray-700 text-gray-300 hover:bg-gray-800"
+                                        onClick={() => {
+                                            const link = `https://wa.me/${(instances || []).find((i: any) => i.instanceId === settings.defaultInstanceId)?.instanceId?.replace(/[^0-9]/g, "") || ""}${prefilledMessage ? `?text=${encodeURIComponent(prefilledMessage)}` : ""}`;
+                                            window.open(link, "_blank");
+                                        }}
+                                    >
+                                        <ExternalLink className="w-4 h-4 mr-2" />
+                                        Test Link
+                                    </Button>
+                                </>
+                            ) : (
+                                <p className="text-sm text-gray-500 italic">Select a WhatsApp instance above to generate a link</p>
+                            )}
+                        </div>
+                    </CardContent>
+                </Card>
+
+                {/* Usage Tips */}
+                <Card className="bg-emerald-950/30 border-emerald-800/50">
+                    <CardContent className="p-4">
+                        <h4 className="text-emerald-400 font-medium mb-2">Where to use your WhatsApp link</h4>
+                        <ul className="text-sm text-gray-400 space-y-1">
+                            <li>• <strong className="text-white">Website:</strong> Add a "Chat with us" button that opens WhatsApp</li>
+                            <li>• <strong className="text-white">Email signature:</strong> Include it so customers can reach you instantly</li>
+                            <li>• <strong className="text-white">Social media:</strong> Add to your bio on Instagram, Facebook, LinkedIn</li>
+                            <li>• <strong className="text-white">Business cards:</strong> Generate a QR code from this link</li>
+                            <li>• <strong className="text-white">Google Business:</strong> Add as your messaging link</li>
+                        </ul>
+                    </CardContent>
+                </Card>
+
+                {/* HTML Snippet */}
+                {settings.defaultInstanceId && (
+                    <Card className="bg-gray-900/50 border-gray-800">
+                        <CardHeader>
+                            <CardTitle className="text-white text-base">HTML Button Code</CardTitle>
+                            <CardDescription>Copy this code to add a WhatsApp button to your website</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="relative">
+                                <pre className="bg-gray-800/50 rounded-lg p-4 text-sm text-gray-300 overflow-x-auto">
+{`<a href="https://wa.me/${(instances || []).find((i: any) => i.instanceId === settings.defaultInstanceId)?.instanceId?.replace(/[^0-9]/g, "") || ""}${prefilledMessage ? `?text=${encodeURIComponent(prefilledMessage)}` : ""}"
+   target="_blank"
+   style="display:inline-flex;align-items:center;gap:8px;background:#25D366;color:white;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:bold;">
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+    <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/>
+  </svg>
+  Chat on WhatsApp
+</a>`}
+                                </pre>
+                                <Button
+                                    size="sm"
+                                    className="absolute top-2 right-2 bg-gray-700 hover:bg-gray-600"
+                                    onClick={() => {
+                                        const code = `<a href="https://wa.me/${(instances || []).find((i: any) => i.instanceId === settings.defaultInstanceId)?.instanceId?.replace(/[^0-9]/g, "") || ""}${prefilledMessage ? `?text=${encodeURIComponent(prefilledMessage)}` : ""}" target="_blank" style="display:inline-flex;align-items:center;gap:8px;background:#25D366;color:white;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:bold;"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/></svg>Chat on WhatsApp</a>`;
+                                        navigator.clipboard.writeText(code);
+                                        toast.success("HTML code copied!");
+                                    }}
+                                >
+                                    <Copy className="w-3 h-3 mr-1" />
+                                    Copy
+                                </Button>
+                            </div>
+                        </CardContent>
+                    </Card>
+                )}
             </TabsContent>
 
             {/* Notifications Tab */}
