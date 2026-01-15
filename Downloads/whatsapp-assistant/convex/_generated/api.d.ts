@@ -8,11 +8,14 @@
  * @module
  */
 
+import type * as analytics from "../analytics.js";
 import type * as campaigns from "../campaigns.js";
 import type * as contacts from "../contacts.js";
 import type * as instances from "../instances.js";
 import type * as interactions from "../interactions.js";
+import type * as leadScoring from "../leadScoring.js";
 import type * as organizations from "../organizations.js";
+import type * as sentiment from "../sentiment.js";
 import type * as settings from "../settings.js";
 import type * as subscriptionUsage from "../subscriptionUsage.js";
 import type * as teamMembers from "../teamMembers.js";
@@ -25,11 +28,14 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  analytics: typeof analytics;
   campaigns: typeof campaigns;
   contacts: typeof contacts;
   instances: typeof instances;
   interactions: typeof interactions;
+  leadScoring: typeof leadScoring;
   organizations: typeof organizations;
+  sentiment: typeof sentiment;
   settings: typeof settings;
   subscriptionUsage: typeof subscriptionUsage;
   teamMembers: typeof teamMembers;
