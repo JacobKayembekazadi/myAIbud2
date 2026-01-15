@@ -1,6 +1,7 @@
 import { inngest } from "../client";
 import { ConvexHttpClient } from "convex/browser";
 import { api } from "@/../convex/_generated/api";
+import { Id } from "@/../convex/_generated/dataModel";
 import { generateText } from "ai";
 import { google } from "@ai-sdk/google";
 import { whatsapp } from "@/lib/whatsapp";
@@ -28,7 +29,7 @@ export const visionEstimator = inngest.createFunction(
     // Step 1: Check credits (vision costs more)
     const creditCheck = await step.run("check-credits", async () => {
       return await convex.query(api.subscriptionUsage.checkCredits, {
-        tenantId: tenantId as string,
+        tenantId: tenantId as Id<"tenants">,
       });
     });
 
@@ -64,19 +65,18 @@ Keep the response concise (2-3 sentences).`;
       }
 
       try {
-        // Fetch image as base64 if it's a URL
-        let imageData: { type: "base64"; data: string; mimeType: string } | { type: "url"; url: string };
+        // Prepare image for AI SDK - either URL or base64 data URL
+        let imageSource: URL | string;
 
         if (imageUrl.startsWith("http")) {
           // Use URL directly
-          imageData = { type: "url", url: imageUrl };
+          imageSource = new URL(imageUrl);
+        } else if (imageUrl.startsWith("data:")) {
+          // Already a data URL
+          imageSource = imageUrl;
         } else {
-          // Assume it's already base64
-          imageData = {
-            type: "base64",
-            data: imageUrl.replace(/^data:image\/\w+;base64,/, ""),
-            mimeType: "image/jpeg",
-          };
+          // Raw base64 - convert to data URL
+          imageSource = `data:image/jpeg;base64,${imageUrl}`;
         }
 
         const { text } = await generateText({
@@ -85,9 +85,7 @@ Keep the response concise (2-3 sentences).`;
             {
               role: "user",
               content: [
-                imageData.type === "url"
-                  ? { type: "image" as const, image: new URL(imageData.url) }
-                  : { type: "image" as const, image: imageData.data, mimeType: imageData.mimeType },
+                { type: "image" as const, image: imageSource },
                 { type: "text" as const, text: analysisPrompt },
               ],
             },
@@ -119,8 +117,8 @@ Keep the response concise (2-3 sentences).`;
     // Step 4: Log the interaction
     await step.run("log-interaction", async () => {
       await convex.mutation(api.interactions.addInteraction, {
-        contactId: contactId as string,
-        tenantId: tenantId as string,
+        contactId: contactId as Id<"contacts">,
+        tenantId: tenantId as Id<"tenants">,
         type: "outbound",
         content: `[Image Analysis] ${analysis.text.substring(0, 500)}${analysis.text.length > 500 ? "..." : ""}`,
       });
@@ -129,11 +127,11 @@ Keep the response concise (2-3 sentences).`;
     // Step 5: Decrement credits (vision costs 2 credits)
     await step.run("decrement-credits", async () => {
       await convex.mutation(api.subscriptionUsage.decrementCredits, {
-        tenantId: tenantId as string,
+        tenantId: tenantId as Id<"tenants">,
       });
       // Decrement again for vision (costs 2x)
       await convex.mutation(api.subscriptionUsage.decrementCredits, {
-        tenantId: tenantId as string,
+        tenantId: tenantId as Id<"tenants">,
       });
     });
 

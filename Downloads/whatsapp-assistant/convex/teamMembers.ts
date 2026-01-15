@@ -201,7 +201,7 @@ export const listMembers = query({
     }
 
     // Get all members
-    let query = ctx.db
+    const query = ctx.db
       .query("teamMembers")
       .withIndex("by_organization", (q) => q.eq("organizationId", args.organizationId));
 
