@@ -44,6 +44,11 @@ export const getSettings = query({
                 businessHoursEnd: 18,
                 businessDays: [1, 2, 3, 4, 5], // Mon-Fri
                 businessTimezone: "Africa/Johannesburg",
+                // Welcome message defaults
+                welcomeMessageEnabled: true,
+                welcomeMessage: undefined, // Will be auto-generated from business profile
+                welcomeMessageDelay: 1000, // 1 second delay feels natural
+                suggestedQuestions: [],
             };
         }
 
@@ -64,6 +69,11 @@ export const getSettings = query({
             businessHoursEnd: settings.businessHoursEnd ?? 18,
             businessDays: settings.businessDays ?? [1, 2, 3, 4, 5],
             businessTimezone: settings.businessTimezone ?? "Africa/Johannesburg",
+            // Welcome message defaults
+            welcomeMessageEnabled: settings.welcomeMessageEnabled ?? true,
+            welcomeMessage: settings.welcomeMessage,
+            welcomeMessageDelay: settings.welcomeMessageDelay ?? 1000,
+            suggestedQuestions: settings.suggestedQuestions ?? [],
         };
     },
 });
@@ -104,6 +114,11 @@ export const updateSettings = mutation({
         businessHoursEnd: v.optional(v.number()),
         businessDays: v.optional(v.array(v.number())),
         businessTimezone: v.optional(v.string()),
+        // Welcome message settings
+        welcomeMessageEnabled: v.optional(v.boolean()),
+        welcomeMessage: v.optional(v.string()),
+        welcomeMessageDelay: v.optional(v.number()),
+        suggestedQuestions: v.optional(v.array(v.string())),
     },
     handler: async (ctx, args) => {
         const { tenantId, ...updates } = args;
@@ -147,6 +162,11 @@ export const updateSettings = mutation({
                 businessHoursEnd: updates.businessHoursEnd ?? 18,
                 businessDays: updates.businessDays ?? [1, 2, 3, 4, 5],
                 businessTimezone: updates.businessTimezone ?? "Africa/Johannesburg",
+                // Welcome message defaults
+                welcomeMessageEnabled: updates.welcomeMessageEnabled ?? true,
+                welcomeMessage: updates.welcomeMessage,
+                welcomeMessageDelay: updates.welcomeMessageDelay ?? 1000,
+                suggestedQuestions: updates.suggestedQuestions ?? [],
                 updatedAt: Date.now(),
             });
         }

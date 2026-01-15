@@ -279,21 +279,74 @@ export const messageAgent = inngest.createFunction(
       return { status: "blocked", reason: "No credits remaining" };
     }
 
-    // Step 5: Get conversation history
+    // Step 5: Check if this is a first-time contact and send welcome message
+    const isFirstContact = contact?.status === "new";
+    const welcomeEnabled = settings?.welcomeMessageEnabled ?? true;
+
+    if (isFirstContact && welcomeEnabled) {
+      await step.run("send-welcome-message", async () => {
+        // Build welcome message
+        let welcomeText = settings?.welcomeMessage;
+
+        // If no custom welcome message, generate one from business profile
+        if (!welcomeText) {
+          const businessName = settings?.businessName || "us";
+          const services = settings?.servicesOffered || [];
+
+          welcomeText = `Hi! Welcome to ${businessName}. 👋`;
+
+          if (services.length > 0) {
+            welcomeText += `\n\nWe can help you with: ${services.slice(0, 3).join(", ")}${services.length > 3 ? ", and more" : ""}.`;
+          }
+
+          welcomeText += `\n\nHow can I assist you today?`;
+        }
+
+        // Add suggested questions if available
+        const suggestedQuestions = settings?.suggestedQuestions || [];
+        if (suggestedQuestions.length > 0) {
+          welcomeText += `\n\n💡 *Quick questions you can ask:*`;
+          suggestedQuestions.slice(0, 3).forEach((q: string) => {
+            welcomeText += `\n• ${q}`;
+          });
+        }
+
+        // Small delay to feel more natural
+        const delay = settings?.welcomeMessageDelay ?? 1000;
+        if (delay > 0) {
+          await new Promise(resolve => setTimeout(resolve, delay));
+        }
+
+        const result = await whatsapp.sendText(instanceId, phone, welcomeText!);
+        if (!result.success) {
+          console.error("Failed to send welcome message:", result.error);
+        }
+
+        // Log the welcome message
+        await convex.mutation(api.interactions.addInteraction, {
+          contactId: contactId as any,
+          tenantId: tenantId as any,
+          type: "outbound",
+          content: `[Welcome] ${welcomeText}`,
+        });
+      });
+    }
+
+    // Step 6: Get conversation history
     const history = await step.run("get-history", async () => {
       return await convex.query(api.interactions.getMessages, {
         contactId: contactId as any,
       });
     });
 
-    // Step 6: Get quick replies for context
+    // Step 7: Get quick replies for context
     const quickReplies = await step.run("get-quick-replies", async () => {
       return await convex.query(api.settings.listQuickReplies, {
         tenantId: tenantId as any,
       });
     });
 
-    // Step 7: Generate AI response using tenant's settings
+    // Step 8: Generate AI response using tenant's settings
     const aiResponse = await step.run("generate-response", async () => {
       const historyText = history
         .slice(-10)
@@ -327,7 +380,7 @@ export const messageAgent = inngest.createFunction(
       return text;
     });
 
-    // Step 8: Send message via WhatsApp
+    // Step 9: Send message via WhatsApp
     await step.run("send-message", async () => {
       const result = await whatsapp.sendText(instanceId, phone, aiResponse);
       if (!result.success) {
@@ -335,7 +388,7 @@ export const messageAgent = inngest.createFunction(
       }
     });
 
-    // Step 9: Log outbound interaction
+    // Step 10: Log outbound interaction
     await step.run("log-outbound", async () => {
       await convex.mutation(api.interactions.addInteraction, {
         contactId: contactId as any,
@@ -345,14 +398,14 @@ export const messageAgent = inngest.createFunction(
       });
     });
 
-    // Step 10: Decrement credits
+    // Step 11: Decrement credits
     await step.run("decrement-credits", async () => {
       await convex.mutation(api.subscriptionUsage.decrementCredits, {
         tenantId: tenantId as any,
       });
     });
 
-    // Step 11: Update contact status to active if new
+    // Step 12: Update contact status to active if new
     if (contact?.status === "new") {
       await step.run("activate-contact", async () => {
         await convex.mutation(api.contacts.updateContact, {

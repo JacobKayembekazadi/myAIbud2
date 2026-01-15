@@ -206,6 +206,11 @@ export default defineSchema({
     businessHoursEnd: v.optional(v.number()), // Hour 0-23
     businessDays: v.optional(v.array(v.number())), // 0=Sun, 1=Mon, etc.
     businessTimezone: v.optional(v.string()), // e.g., "Africa/Johannesburg"
+    // Welcome Message Settings (for first-time contacts)
+    welcomeMessageEnabled: v.optional(v.boolean()), // Send welcome message to new contacts
+    welcomeMessage: v.optional(v.string()), // Custom welcome message
+    welcomeMessageDelay: v.optional(v.number()), // Delay in ms before sending (feels more natural)
+    suggestedQuestions: v.optional(v.array(v.string())), // Quick questions customers can ask
     updatedAt: v.number(),
   })
     .index("by_tenant", ["tenantId"])
