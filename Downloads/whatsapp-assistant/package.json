@@ -7,7 +7,8 @@
   },
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "npx convex deploy --cmd 'next build'",
+    "build:next": "next build",
     "start": "next start",
     "lint": "eslint",
     "test": "jest",
