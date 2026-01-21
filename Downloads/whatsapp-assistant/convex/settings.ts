@@ -81,6 +81,12 @@ export const getSettings = query({
                 leadScoringEnabled: true,
                 hotLeadThreshold: 80,
                 warmLeadThreshold: 50,
+                // LLM Provider defaults (optimized for speed)
+                primaryLlmProvider: "openai" as const,
+                primaryLlmModel: "gpt-4o-mini",
+                fallbackLlmProvider: "gemini" as const,
+                fallbackLlmModel: "gemini-2.0-flash",
+                llmTimeoutMs: 8000,
             };
         }
 
@@ -128,6 +134,12 @@ export const getSettings = query({
             leadScoringEnabled: settings.leadScoringEnabled ?? true,
             hotLeadThreshold: settings.hotLeadThreshold ?? 80,
             warmLeadThreshold: settings.warmLeadThreshold ?? 50,
+            // LLM Provider defaults (optimized for speed)
+            primaryLlmProvider: settings.primaryLlmProvider ?? "openai",
+            primaryLlmModel: settings.primaryLlmModel ?? "gpt-4o-mini",
+            fallbackLlmProvider: settings.fallbackLlmProvider ?? "gemini",
+            fallbackLlmModel: settings.fallbackLlmModel ?? "gemini-2.0-flash",
+            llmTimeoutMs: settings.llmTimeoutMs ?? 8000,
         };
     },
 });
@@ -195,6 +207,20 @@ export const updateSettings = mutation({
         leadScoringEnabled: v.optional(v.boolean()),
         hotLeadThreshold: v.optional(v.number()),
         warmLeadThreshold: v.optional(v.number()),
+        // LLM Provider settings
+        primaryLlmProvider: v.optional(v.union(
+            v.literal("openai"),
+            v.literal("gemini"),
+            v.literal("anthropic")
+        )),
+        primaryLlmModel: v.optional(v.string()),
+        fallbackLlmProvider: v.optional(v.union(
+            v.literal("openai"),
+            v.literal("gemini"),
+            v.literal("anthropic")
+        )),
+        fallbackLlmModel: v.optional(v.string()),
+        llmTimeoutMs: v.optional(v.number()),
     },
     handler: async (ctx, args) => {
         const { tenantId, ...updates } = args;

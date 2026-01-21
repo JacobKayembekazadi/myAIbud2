@@ -515,22 +515,36 @@ export const messageAgent = inngest.createFunction(
         }
       }
 
-      // Use tenant's AI model setting, fallback to gemini-1.5-flash
-      const modelName = settings?.aiModel || "gemini-1.5-flash";
-
       // Build dynamic system prompt with language support
       const systemPrompt = multiLanguageEnabled
         ? buildSystemPromptWithLanguage(settings, quickRepliesContext, detectedLang)
         : buildSystemPrompt(settings, quickRepliesContext);
 
-      const { text } = await generateText({
-        model: google(modelName),
+      // Use provider-agnostic LLM system with fallback
+      const { generateWithFallback, LLMPresets } = await import("@/lib/llm");
+
+      // Get provider settings (defaults to fast preset: OpenAI -> Gemini)
+      const primaryProvider = settings?.primaryLlmProvider || "openai";
+      const primaryModel = settings?.primaryLlmModel || "gpt-4o-mini";
+      const fallbackProvider = settings?.fallbackLlmProvider || "gemini";
+      const fallbackModel = settings?.fallbackLlmModel || "gemini-2.0-flash";
+      const timeoutMs = settings?.llmTimeoutMs || 8000;
+
+      const response = await generateWithFallback({
+        primary: { provider: primaryProvider as any, model: primaryModel },
+        fallback: { provider: fallbackProvider as any, model: fallbackModel },
+        tertiary: LLMPresets.fast.tertiary, // Claude Haiku as last resort
         system: systemPrompt,
         prompt: `Previous conversation:\n${historyText}\n\nUser: ${content}\n\nRespond appropriately:`,
         temperature: settings?.aiTemperature ?? 0.7,
+        maxTokens: settings?.aiMaxTokens ?? 1000,
+        timeoutMs,
       });
 
-      return text;
+      // Log which provider was used (useful for debugging/analytics)
+      console.log(`[AI Response] Provider: ${response.provider}, Model: ${response.model}, Latency: ${response.latencyMs}ms, Fallback: ${response.usedFallback}`);
+
+      return response.text;
     });
 
     // Step 8.5: Check if AI response indicates uncertainty (post-response handoff)
