@@ -194,6 +194,20 @@ export default defineSchema({
     aiModel: v.string(), // "gemini-1.5-pro", "gemini-1.5-flash"
     aiTemperature: v.number(),
     aiMaxTokens: v.number(),
+    // LLM Provider Settings (API-agnostic)
+    primaryLlmProvider: v.optional(v.union(
+      v.literal("openai"),
+      v.literal("gemini"),
+      v.literal("anthropic")
+    )), // Default: "openai" for speed
+    primaryLlmModel: v.optional(v.string()), // e.g., "gpt-4o-mini", "gemini-2.0-flash"
+    fallbackLlmProvider: v.optional(v.union(
+      v.literal("openai"),
+      v.literal("gemini"),
+      v.literal("anthropic")
+    )), // Default: "gemini"
+    fallbackLlmModel: v.optional(v.string()), // e.g., "gemini-2.0-flash"
+    llmTimeoutMs: v.optional(v.number()), // Timeout before fallback (default: 8000)
     emailNotifications: v.boolean(),
     smsNotifications: v.boolean(),
     // Business Profile Settings
