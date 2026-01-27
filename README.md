@@ -321,36 +321,108 @@ X-Webhook-Signature: sha256=<hmac>
 
 ## Documentation
 
+### Primary Docs
+
 | Document | Description |
 |----------|-------------|
-| [ARCHITECTURE.md](./ARCHITECTURE.md) | Technical deep-dive |
-| [SOP.md](./SOP.md) | Standard Operating Procedures |
-| [.env.example](./.env.example) | Environment template |
+| [ARCHITECTURE.md](./ARCHITECTURE.md) | Technical deep-dive, data flow, component design |
+| [SOP.md](./SOP.md) | Standard Operating Procedures for operations |
+| [.env.example](./.env.example) | Environment variable template |
+
+### Guides (docs/)
+
+| Document | Description |
+|----------|-------------|
+| [QUICK-START.md](./docs/QUICK-START.md) | Get running in 5 minutes |
+| [SETUP-GUIDE.md](./docs/SETUP-GUIDE.md) | Detailed setup instructions |
+| [DEPLOYMENT-CHECKLIST.md](./docs/DEPLOYMENT-CHECKLIST.md) | Pre-deployment checklist |
+| [DEPLOYMENT-RUNBOOK.md](./docs/DEPLOYMENT-RUNBOOK.md) | Production deployment guide |
+
+### Archive (docs/archive/)
+
+Historical planning documents, phase completions, and legacy docs preserved for reference.
+
+---
+
+## Compliance Notice
+
+### Meta WhatsApp Business API Policy (January 2026)
+
+Meta's updated terms (effective January 15, 2026) prohibit **general-purpose AI chatbots** on WhatsApp Business API. However, **business service bots are explicitly allowed**.
+
+| Type | Status |
+|------|--------|
+| General-purpose AI ("ask anything") | Banned |
+| Customer service bots | **Allowed** |
+| Booking/scheduling bots | **Allowed** |
+| Lead qualification bots | **Allowed** |
+| Business FAQ bots | **Allowed** |
+
+**MyChatFlow is compliant** because AI is incidental to business services, not the primary functionality. The platform serves specific business use cases (real estate, automotive, legal) rather than open-ended AI conversations.
+
+> For details, see Meta's [WhatsApp Business Solution Terms](https://www.whatsapp.com/legal/business-solution-terms/).
+
+---
+
+## Project Structure
+
+```
+mychatflow/
+├── src/
+│   ├── app/              # Next.js 15 App Router pages
+│   ├── components/       # React components (UI, chat, dashboard)
+│   ├── lib/              # Core libraries
+│   │   ├── llm/          # Multi-provider LLM orchestrator
+│   │   ├── whatsapp/     # WAHA integration
+│   │   └── email/        # Email templates
+│   ├── inngest/          # Background job handlers
+│   └── middleware/       # Auth & rate limiting
+├── convex/               # Convex database schema & functions
+├── public/               # Static assets
+├── docs/                 # Documentation
+│   ├── archive/          # Historical docs
+│   └── notes/            # Development notes
+├── ARCHITECTURE.md       # Technical architecture
+├── SOP.md               # Operations procedures
+└── README.md            # This file
+```
 
 ---
 
 ## Roadmap
 
-### Current (v1.x)
-- [x] Multi-language AI responses
-- [x] Lead scoring & analytics
-- [x] Human handoff system
-- [x] Follow-up sequences
-- [x] Appointment booking
+### Implemented (v1.0)
+- [x] Multi-language AI responses (9+ languages)
+- [x] Lead scoring & A-F grading
+- [x] Real-time analytics dashboard
+- [x] Human handoff with keyword triggers
+- [x] Follow-up sequences (automated nurture)
+- [x] Appointment booking system
 - [x] Multi-LLM support (OpenAI, Gemini, Claude)
-- [x] Provider-agnostic architecture
+- [x] Provider-agnostic architecture with fallback
+- [x] Circuit breaker pattern for reliability
+- [x] Styled UI components (no raw code output)
+- [x] Multi-tenant architecture
+- [x] Team/organization support
 
-### Next (v2.x)
+### In Progress (v1.1)
+- [ ] Vision analysis for images/documents
+- [ ] Bulk messaging campaigns
+- [ ] Advanced analytics exports
+
+### Planned (v2.0)
 - [ ] RAG with vector database (Pinecone)
-- [ ] Conversation memory
+- [ ] Conversation memory & summarization
 - [ ] CRM integrations (HubSpot, Salesforce)
 - [ ] Calendar sync (Google, Outlook)
 - [ ] Voice message transcription
+- [ ] ElevenLabs voice integration
 
-### Future (v3.x)
+### Future (v3.0)
 - [ ] Custom AI training per tenant
 - [ ] Multi-channel (Instagram, Telegram)
 - [ ] White-label solution
+- [ ] API marketplace integrations
 
 ---
 

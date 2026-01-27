@@ -11,7 +11,7 @@ dist/
 # downloads/
 eggs/
 .eggs/
-lib/
+# lib/ - removed, was conflicting with src/lib/
 lib64/
 parts/
 sdist/
@@ -61,8 +61,8 @@ Thumbs.db
 .next/
 out/
 
-# Downloads folder - removed to allow whatsapp-assistant project
-# Downloads/
+# Build artifacts
+tsconfig.tsbuildinfo
 
 # Evolution API
 evolution-api/node_modules/
